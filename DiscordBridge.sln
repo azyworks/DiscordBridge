@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33205.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordBridgePlugin", "DiscordBridgePlugin\DiscordBridgePlugin.csproj", "{102EEBE1-59A9-4E26-83B3-83FD76541655}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiscordBridgeBot", "DiscordBridgeBot\DiscordBridgeBot.csproj", "{199F88E5-9EE8-40F8-8450-695933B096CC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordBridge.CustomNetwork", "DiscordBridge.CustomNetwork\DiscordBridge.CustomNetwork.csproj", "{46849C06-A73B-42CC-AC2B-0F1D0C7C0C7E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{102EEBE1-59A9-4E26-83B3-83FD76541655}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{102EEBE1-59A9-4E26-83B3-83FD76541655}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{102EEBE1-59A9-4E26-83B3-83FD76541655}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{102EEBE1-59A9-4E26-83B3-83FD76541655}.Release|Any CPU.Build.0 = Release|Any CPU
+		{199F88E5-9EE8-40F8-8450-695933B096CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{199F88E5-9EE8-40F8-8450-695933B096CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{199F88E5-9EE8-40F8-8450-695933B096CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{199F88E5-9EE8-40F8-8450-695933B096CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{46849C06-A73B-42CC-AC2B-0F1D0C7C0C7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{46849C06-A73B-42CC-AC2B-0F1D0C7C0C7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{46849C06-A73B-42CC-AC2B-0F1D0C7C0C7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{46849C06-A73B-42CC-AC2B-0F1D0C7C0C7E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {347AF938-A96B-4F47-94D0-87E269BD618E}
+	EndGlobalSection
+EndGlobal

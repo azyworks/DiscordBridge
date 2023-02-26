@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <StartupObject></StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Discord.Addons.EmojiTools" Version="2.0.2" />
+    <PackageReference Include="Discord.Addons.Paginator" Version="2.3.0" />
+    <PackageReference Include="Discord.Net" Version="3.9.0" />
+    <PackageReference Include="Discord.Net.Commands" Version="3.9.0" />
+    <PackageReference Include="Discord.Net.Core" Version="3.9.0" />
+    <PackageReference Include="Discord.Net.Extensions" Version="1.2.1" />
+    <PackageReference Include="Discord.Net.Interactions" Version="3.9.0" />
+    <PackageReference Include="Discord.Net.Webhook" Version="3.9.0" />
+    <PackageReference Include="Discord.Net.WebSocket" Version="3.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="AzyWorks">
+      <HintPath>..\..\AzyWorks\AzyWorks\bin\Debug\AzyWorks.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DiscordBridge.CustomNetwork\DiscordBridge.CustomNetwork.csproj" />
+  </ItemGroup>
+
+</Project>
