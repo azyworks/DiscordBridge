@@ -1,11 +1,11 @@
-﻿using AzyWorks.Services;
-using AzyWorks.Utilities;
+﻿using AzyWorks.System;
+using AzyWorks.System.Services;
 
 using DiscordBridgeBot.Core.Logging;
 
 namespace DiscordBridgeBot.Core.ConsoleCommands
 {
-    public class ConsoleCommandsService : ServiceBase
+    public class ConsoleCommandsService : IService
     {
         private LogService _log;
         private Thread _captureThread;
@@ -15,7 +15,9 @@ namespace DiscordBridgeBot.Core.ConsoleCommands
 
         public const string CommandsNamespace = "DiscordBridgeBot.Core.ConsoleCommands.Commands";
 
-        public override void Setup(object[] args)
+        public IServiceCollection Collection { get; set; }
+
+        public void Start(IServiceCollection collection, object[] initArgs)
         {
             _log = Collection.GetService<LogService>();
             _commands = new HashSet<ConsoleCommandBase>();
@@ -59,7 +61,7 @@ namespace DiscordBridgeBot.Core.ConsoleCommands
                 if (type.Namespace != CommandsNamespace)
                     continue;
 
-                var instance = ReflectUtils.Instantiate<ConsoleCommandBase>(type);
+                var instance = Reflection.Instantiate<ConsoleCommandBase>(type);
 
                 if (instance is null)
                     continue;
@@ -82,6 +84,18 @@ namespace DiscordBridgeBot.Core.ConsoleCommands
 
                 OnCommandCaptured?.Invoke(input);
             }
+        }
+
+        public bool IsValid()
+        {
+            return true;
+        }
+
+        public void Stop()
+        {
+            _captureThread = null;
+            _commands?.Clear();
+            _commands = null;
         }
     }
 }

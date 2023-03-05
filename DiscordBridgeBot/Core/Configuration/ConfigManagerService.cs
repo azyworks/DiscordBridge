@@ -1,12 +1,12 @@
 ﻿using AzyWorks.Configuration;
 using AzyWorks.Configuration.Converters.Yaml;
-using AzyWorks.Services;
+using AzyWorks.System.Services;
 
 using DiscordBridgeBot.Core.Logging;
 
 namespace DiscordBridgeBot.Core.Configuration
 {
-    public class ConfigManagerService : ServiceBase
+    public class ConfigManagerService : IService
     {
         private LogService _log;
         private ConfigHandler _configHandler;
@@ -17,10 +17,12 @@ namespace DiscordBridgeBot.Core.Configuration
 
         public ConfigHandler ConfigHandler { get => _configHandler; }
 
-        public override void Setup(object[] args)
+        public IServiceCollection Collection { get; set; }
+
+        public void Start(IServiceCollection collection, object[] initArgs)
         {
-            Path = (string)args[0];
-            Types = (Type[])args[1];
+            Path = (string)initArgs[0];
+            Types = (Type[])initArgs[1];
 
             _configHandler = new ConfigHandler(new YamlConfigConverter());
             _log = Collection.GetService<LogService>();
@@ -28,10 +30,10 @@ namespace DiscordBridgeBot.Core.Configuration
             ReloadAll();
         }
 
-        public override void Destroy()
+        public void Stop()
         {
-            _configHandler.SaveToFile(Path);
-            _log.Info("Configuration files saved.");
+            _configHandler?.SaveToFile(Path);
+            _log?.Info("Configuration files saved.");
 
             _typesRegistered = false;
             _configHandler = null;
@@ -63,6 +65,11 @@ namespace DiscordBridgeBot.Core.Configuration
             }
 
             _log.Info("Configuration files reloaded!");
+        }
+
+        public bool IsValid()
+        {
+            return true;
         }
     }
 }

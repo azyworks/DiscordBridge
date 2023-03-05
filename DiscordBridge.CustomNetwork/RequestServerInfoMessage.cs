@@ -2,7 +2,7 @@
 
 using System.IO;
 
-namespace DiscordBridge.CustomNetwork.ServerMessages
+namespace DiscordBridge.CustomNetwork
 {
     public struct RequestServerInfoMessage : INetMessage
     {

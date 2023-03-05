@@ -1,4 +1,4 @@
-﻿namespace DiscordBridge.CustomNetwork.RoleSync
+﻿namespace DiscordBridge.CustomNetwork.Tickets
 {
     public enum RoleSyncTicketInvalidationReason
     {

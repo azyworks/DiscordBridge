@@ -1,4 +1,4 @@
-﻿using AzyWorks.Services;
+﻿using AzyWorks.System.Services;
 
 using Discord;
 using Discord.Commands;
@@ -6,11 +6,9 @@ using Discord.WebSocket;
 using DiscordBridgeBot.Core.Configuration;
 using DiscordBridgeBot.Core.Logging;
 
-using System.ComponentModel.Design;
-
 namespace DiscordBridgeBot.Core.DiscordBot
 {
-    public class DiscordService : ServiceBase
+    public class DiscordService : IService
     {
         private LogService _log;
 
@@ -24,11 +22,14 @@ namespace DiscordBridgeBot.Core.DiscordBot
         public SocketTextChannel[] AdminChannels { get; private set; }
         public SocketTextChannel[] Channels { get; private set; }
 
+        public IServiceCollection Collection { get; set; }
+
+
         [Config("Discord.Token", "The token to use for your Discord bot.")]
-        public string Token;
+        public string Token = "none";
 
         [Config("Discord.Prefix", "The prefix to use for commands.")]
-        public string Prefix;
+        public string Prefix = "!";
 
         [Config("Discord.AdminOverride", "Whether or not to allow the Administrator permission to bypass all permission checks.")]
         public bool AdminOverride = true;
@@ -56,13 +57,13 @@ namespace DiscordBridgeBot.Core.DiscordBot
 
         public event Action<SocketGuildUser, SocketGuild> OnReady;
 
-        public override void Setup(object[] args)
+        public void Start(IServiceCollection collection, object[] initArgs)
         {
             _log = Collection.GetService<LogService>();
             Collection.GetService<ConfigManagerService>()?.ConfigHandler.RegisterConfigs(this);
         }
 
-        public override void Destroy() => Disconnect();
+        public void Stop() => Disconnect();
 
         public void Connect()
         {
@@ -95,9 +96,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                 LogLevel = LogSeverity.Warning
             });
 
-            var container = new ServiceContainer();
-            container.AddService(typeof(ServiceCollectionBase), Collection);
-            CommandsServices = container;
+            CommandsServices = Collection.ToProvider();
 
             Commands.CommandExecuted += OnCommandExecuted;
             Client.GuildAvailable += OnGuildAvailable;
@@ -118,9 +117,11 @@ namespace DiscordBridgeBot.Core.DiscordBot
         {
             if (permission is DiscordPermission.None)
                 return true;
-            else if (permission is DiscordPermission.Administrator 
-                && ((user.Guild.OwnerId == user.Id) || AdminOverride 
+            else if (permission is DiscordPermission.Administrator
+                && ((user.Guild.OwnerId == user.Id) || AdminOverride
                 ? (user.GuildPermissions.Administrator || user.Roles.Any(x => x.Permissions.Administrator)) : false))
+                return true;
+            else if (HasPermission(user, DiscordPermission.Administrator))
                 return true;
             else
             {
@@ -133,7 +134,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                         if (Permissions.TryGetValue(role.Id, out perms) && perms.Contains(permission))
                         {
                             return true;
-                        }    
+                        }
                     }
                 }
             }
@@ -147,10 +148,28 @@ namespace DiscordBridgeBot.Core.DiscordBot
             return member != null;
         }
 
+        public string GetMention(ulong id)
+        {
+            var role = Guild.GetRole(id);
+            if (role != null)
+                return role.Mention;
+
+            var user = Guild.GetUser(id);
+            if (user != null)
+                return user.Mention;
+
+            var channel = Guild.GetChannel(id);
+            if (channel != null)
+                return $"<#{channel.Id}>";
+
+            return "Unknown ID";
+        }
+
         internal async Task ConnectAsync()
         {
             await Client.StartAsync();
             await Client.LoginAsync(TokenType.Bot, Token);
+
             await Commands.AddModuleAsync<DiscordCommandService>(CommandsServices);
 
             _log.Info("Connected to Discord!");
@@ -226,7 +245,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
             }
 
             var context = new SocketCommandContext(Client, userMessage);
-            await Commands.ExecuteAsync(context, argPos, null, MultiMatchHandling.Best);
+            await Commands.ExecuteAsync(context, argPos, CommandsServices, MultiMatchHandling.Best);
         }
 
         private Task OnGuildAvailable(SocketGuild guild)
@@ -272,6 +291,11 @@ namespace DiscordBridgeBot.Core.DiscordBot
             _log.Info("Discord is ready!");
 
             return Task.CompletedTask;
+        }
+
+        public bool IsValid()
+        {
+            return true;
         }
     }
 }

@@ -1,8 +1,7 @@
 ﻿using AzyWorks.Networking.Server;
-using AzyWorks.Services;
+using AzyWorks.System.Services;
 
-using DiscordBridge.CustomNetwork.PluginMessages;
-using DiscordBridge.CustomNetwork.ServerMessages;
+using DiscordBridge.CustomNetwork;
 using DiscordBridgeBot.Core.Configuration;
 using DiscordBridgeBot.Core.Logging;
 using DiscordBridgeBot.Core.ScpSl;
@@ -11,7 +10,7 @@ using System.Net;
 
 namespace DiscordBridgeBot.Core.Network
 {
-    public class NetworkManagerService : ServiceBase
+    public class NetworkManagerService : IService
     {
         private bool _ipValidated;
 
@@ -26,13 +25,9 @@ namespace DiscordBridgeBot.Core.Network
         [Config("Network.Ip", "The IP address to listen on for incoming connections.")]
         public static string IpAddress = "127.0.0.1";
 
-        public override void Setup(object[] args)
-        {
-            _knownClients = new Dictionary<ulong, NetworkService>();
-            _log = Collection.CreateService<LogService>("Services::NetworkManager");
+        public IReadOnlyCollection<NetworkService> KnownClients { get => _knownClients.Values; }
 
-            Validate();
-        }
+        public IServiceCollection Collection { get; set; }
 
         public void Validate()
         {
@@ -103,6 +98,25 @@ namespace DiscordBridgeBot.Core.Network
             _log.Info("Stopped listening for incoming connections!");
         }
 
+        public bool TryGetServer(int serverPort, out ScpSlServer server)
+        {
+            server = null;
+
+            foreach (var client in _knownClients.Values)
+            {
+                if (client.Collection is ScpSlServer scpSlServer)
+                {
+                    if (scpSlServer.ServerPort == serverPort)
+                    {
+                        server = scpSlServer;
+                        return true;
+                    }
+                }
+            }
+
+            return server != null;
+        }
+
         private void OnClientDisconnected(NetConnection client)
         {
             if (_knownClients.TryGetValue(client.Id, out var service))
@@ -124,9 +138,11 @@ namespace DiscordBridgeBot.Core.Network
                 _log.Info($"Received the SyncServerInfoMessage for client {client.EndPoint}! Setting up the server ..");
 
                 var server = new ScpSlServer();
+                var net = server.AddService<NetworkService>(client);
 
-                server.AddService<NetworkService>(client);
                 server.LoadServer(x);
+
+                _knownClients[client.Id] = net;
 
                 _log.Info("Server setup completed.");
             });
@@ -135,6 +151,26 @@ namespace DiscordBridgeBot.Core.Network
                 .WithMessage(new RequestServerInfoMessage()));
 
             _log.Info($"{client.EndPoint} is attempting connection! Waiting for a SyncServerInfoMessage ..");
+        }
+
+        public bool IsValid()
+        {
+            return true;
+        }
+
+        public void Start(IServiceCollection serviceCollection, params object[] initArgs)
+        {
+            _knownClients = new Dictionary<ulong, NetworkService>();
+            _log = Collection.GetService<LogService>();
+
+            Validate();
+        }
+
+        public void Stop()
+        {
+            _knownClients?.Clear();
+            _knownClients = null;
+            _log = null;
         }
     }
 }

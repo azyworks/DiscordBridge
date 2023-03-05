@@ -1,11 +1,13 @@
-﻿using AzyWorks.IO.Binary;
-using AzyWorks.Services;
+﻿using AzyWorks;
+using AzyWorks.IO.Binary;
+using AzyWorks.System.Services;
 
 using Discord;
 using Discord.WebSocket;
 
 using DiscordBridge.CustomNetwork.RoleSync;
-using DiscordBridge.CustomNetwork.ServerMessages.RoleSync;
+using DiscordBridge.CustomNetwork.Tickets;
+using DiscordBridgeBot.Core.Configuration;
 using DiscordBridgeBot.Core.DiscordBot;
 using DiscordBridgeBot.Core.Logging;
 using DiscordBridgeBot.Core.Network;
@@ -14,21 +16,23 @@ using DiscordBridgeBot.Core.ScpSl;
 
 namespace DiscordBridgeBot.Core.RoleSync
 {
-    public class RoleSyncService : ServiceBase
+    public class RoleSyncService : IService
     {
         private LogService _log;
 
         public const string NoneRole = "<NONE>";
-
-        public BinaryFile Cache { get; private set; }
 
         public RoleSyncTicketService Tickets { get; private set; }
 
         public DiscordService Discord { get; private set; }
         public NetworkService Network { get; private set; }
 
+        public ScpSlServer Server { get; private set; }
+
         public HashSet<RoleSyncCacheAccount> Accounts { get; private set; }
         public HashSet<RoleSyncRole> Roles { get; private set; }
+
+        public IServiceCollection Collection { get; set; }
 
         public event Action<RoleSyncCacheAccount, RoleSyncRole> OnRoleLinked;
         public event Action<RoleSyncCacheAccount, RoleSyncRole> OnRoleUnlinked;
@@ -36,28 +40,65 @@ namespace DiscordBridgeBot.Core.RoleSync
         public event Action<RoleSyncCacheAccount> OnAccountLinked;
         public event Action<RoleSyncCacheAccount> OnAccountUnliked;
 
-        public override void Setup(object[] args)
+        public void Start(IServiceCollection collection, object[] initArgs)
         {
-            var server = Collection as ScpSlServer;
+            if (!(collection is ScpSlServer server))
+            {
+                Log.SendError("Core :: RoleSyncService", $"Collection {collection} is not an ScpSlServer.");
+                return;
+            }
 
-            _log = server.GetService<LogService>(); 
+            Server = server;
 
-            server.AddService<RoleSyncTicketService>();
-            server.ConfigManager.ConfigHandler.RegisterConfigs(this);
+            _log = collection.GetService<LogService>(); 
 
-            Tickets = server.GetService<RoleSyncTicketService>();
-            Discord = server.Discord;
-            Network = server.Network;
+            collection.AddService<RoleSyncTicketService>();
+            collection.GetService<ConfigManagerService>().ConfigHandler.RegisterConfigs(this);
 
-            Cache = new BinaryFile($"{server.ServerPath}/RoleSyncCache.bin");
+            Tickets = collection.GetService<RoleSyncTicketService>();
+            Discord = collection.GetService<DiscordService>();
+            Network = collection.GetService<NetworkService>();
 
-            if (!File.Exists($"{server.ServerPath}/RoleSyncCache.bin"))
-                SaveRoles();
-            else
-                LoadRoles();
+            LoadRoles();
 
             Tickets.OnTicketValidated += OnTicketValidated;
             Discord.OnReady += OnDiscordReady;
+        }
+
+        public void UpdateRole(string role, string name, IEnumerable<ulong> applicableIds)
+        {
+            if (TryGetRole(role, out var syncRole))
+            {
+                syncRole.PossibleIds = applicableIds.ToHashSet();
+                syncRole.Name = name;
+            }
+            else
+            {
+                syncRole = new RoleSyncRole
+                {
+                    Key = role,
+                    PossibleIds = applicableIds.ToHashSet(),
+                    Name = name,
+                    LinkedUsers = new HashSet<ulong>()
+                };
+
+                Roles.Add(syncRole);
+            }
+
+            SaveRoles();
+        }
+
+        public void RemoveRole(string role)
+        {
+            var syncRole = Roles.FirstOrDefault(x => x.Key == role);
+
+            if (syncRole != null)
+            {
+                if (Roles.Remove(syncRole))
+                {
+                    SaveRoles();
+                }
+            }
         }
 
         public void LinkRole(RoleSyncCacheAccount account, RoleSyncRole role)
@@ -70,6 +111,48 @@ namespace DiscordBridgeBot.Core.RoleSync
                 Network.Client.Send(new AzyWorks.Networking.NetPayload()
                     .WithMessage(new RoleSyncRoleMessage(account.UserId, role.Key)));
             }
+        }
+
+        public void LinkAccount(string userId, SocketGuildUser user)
+        {
+            if (TryGetAccount(userId, out var account))
+            {
+                account.DiscordId = user?.Id ?? 0;
+            }
+            else
+            {
+                account = new RoleSyncCacheAccount
+                {
+                    DiscordId = user?.Id ?? 0,
+                    UserId = userId,
+                    UserName = ""
+                };
+
+                Accounts.Add(account);
+            }
+
+            SaveRoles();
+        }
+
+        public void LinkAccount(string userId, ulong discordId)
+        {
+            if (TryGetAccount(userId, out var account))
+            {
+                account.DiscordId = discordId;
+            }
+            else
+            {
+                account = new RoleSyncCacheAccount
+                {
+                    DiscordId = discordId,
+                    UserId = userId,
+                    UserName = ""
+                };
+
+                Accounts.Add(account);
+            }
+
+            SaveRoles();
         }
 
         public void UnlinkRole(RoleSyncCacheAccount account, RoleSyncRole role)
@@ -95,6 +178,20 @@ namespace DiscordBridgeBot.Core.RoleSync
 
                 _log.Info($"Unlinked account: {account.DiscordId}");
             }
+        }
+
+        public ulong GetBoundId(ulong[] applicableIds, SocketGuildUser user)
+        {
+            if (applicableIds.Contains(user.Id))
+                return user.Id;
+
+            foreach (var role in user.Roles)
+            {
+                if (applicableIds.Contains(role.Id))
+                    return role.Id;
+            }
+
+            return 0;
         }
 
         public bool TryGetRole(string roleId, out RoleSyncRole role)
@@ -177,12 +274,19 @@ namespace DiscordBridgeBot.Core.RoleSync
 
         private void OnTicketValidated(RoleSyncTicket ticket, ulong validatorId, RoleSyncTicketValidationReason reason)
         {
+            LinkAccount(ticket.Account.Id, validatorId);
+
             if (TryGetLinkableRoles(validatorId, out var roles))
             {
                 var role = roles.First();
 
                 Network.Client.Send(new AzyWorks.Networking.NetPayload()
                     .WithMessage(new RoleSyncRoleMessage(ticket.Account.Id, role.Key)));
+
+                if (TryGetAccount(ticket.Account.Id, out var account))
+                    LinkRole(account, role);
+
+                ticket.Account.Role = role.Key;
 
                 _log.Info($"Auto-linked role {role.Name} to user {ticket.Account.Id}");
             }
@@ -260,15 +364,17 @@ namespace DiscordBridgeBot.Core.RoleSync
 
         public void SaveRoles()
         {
-            if (Cache is null)
-                return;
+            var cache = new BinaryFile($"{Server.ServerPath}/RoleSyncCache");
 
-            Accounts ??= new HashSet<RoleSyncCacheAccount>();
-            Roles ??= new HashSet<RoleSyncRole>();
+            if (Accounts is null)
+                Accounts = new HashSet<RoleSyncCacheAccount>();
 
-            Cache.WriteData("accounts", Accounts);
-            Cache.WriteData("roles", Roles);
-            Cache.WriteFile();
+            if (Roles is null)
+                Roles = new HashSet<RoleSyncRole>();
+
+            cache.WriteData("accounts", Accounts);
+            cache.WriteData("roles", Roles);
+            cache.WriteFile();
 
             _log.Info($"Saved {Accounts.Count} accounts.");
             _log.Info($"Saved {Roles.Count} roles.");
@@ -276,16 +382,36 @@ namespace DiscordBridgeBot.Core.RoleSync
 
         public void LoadRoles()
         {
-            if (Cache is null) 
+            if (!File.Exists($"{Server.ServerPath}/RoleSyncCache"))
+            {
+                SaveRoles();
                 return;
+            }
 
-            Cache.ReadFile();
+            var cache = new BinaryFile($"{Server.ServerPath}/RoleSyncCache");
 
-            Accounts = Cache.GetData<HashSet<RoleSyncCacheAccount>>("accounts");
-            Roles = Cache.GetData<HashSet<RoleSyncRole>>("roles");
+            cache.ReadFile();
+
+            Accounts = cache.GetData<HashSet<RoleSyncCacheAccount>>("accounts");
+            Roles = cache.GetData<HashSet<RoleSyncRole>>("roles");
 
             _log.Info($"Loaded {Accounts.Count} accounts.");
             _log.Info($"Loaded {Roles.Count} roles.");
+        }
+
+        public bool IsValid()
+        {
+            return true;
+        }
+
+        public void Stop()
+        {
+            SaveRoles();
+
+            _log = null;
+
+            Accounts = null;
+            Roles = null;
         }
     }
 }

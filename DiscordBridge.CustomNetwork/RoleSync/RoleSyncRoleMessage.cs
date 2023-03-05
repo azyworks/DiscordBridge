@@ -2,7 +2,7 @@
 
 using System.IO;
 
-namespace DiscordBridge.CustomNetwork.ServerMessages.RoleSync
+namespace DiscordBridge.CustomNetwork.RoleSync
 {
     public struct RoleSyncRoleMessage : INetMessage
     {

@@ -1,20 +1,22 @@
 ﻿using AzyWorks;
-using AzyWorks.Services;
+using AzyWorks.System.Services;
 
 using DiscordBridgeBot.Core.Configuration;
 
 namespace DiscordBridgeBot.Core.Logging
 {
-    public class LogService : ServiceBase
+    public class LogService : IService
     {
         public string Name;
 
         [Config("LogService.Debug", "Whether or not to show lengthy debug messages.")]
         public static bool DebugTogle;
 
-        public override void Setup(object[] args)
+        public IServiceCollection Collection { get; set; }
+
+        public void Start(IServiceCollection collection, object[] initArgs)
         {
-            Name = (string)args[0];
+            Name = (string)initArgs[0];
         }
 
         public void Info(object message) => Log.SendInfo(Name, message);
@@ -26,6 +28,16 @@ namespace DiscordBridgeBot.Core.Logging
                 return;
 
             Log.SendDebug(Name, message);
+        }
+
+        public bool IsValid()
+        {
+            return true;
+        }
+
+        public void Stop()
+        {
+
         }
     }
 }

@@ -1,18 +1,29 @@
 ﻿using AzyWorks.Networking.Server;
-using AzyWorks.Services;
+using AzyWorks.System.Services;
 
 namespace DiscordBridgeBot.Core.Network
 {
-    public class NetworkService : ServiceBase
+    public class NetworkService : IService
     {
         public ulong Id { get; private set; }
 
         public NetConnection Client { get; private set; }
+        public IServiceCollection Collection { get; set; }
 
-        public override void Setup(object[] args)
+        public bool IsValid()
         {
-            Client = (NetConnection)args[0];
+            return true;
+        }
+
+        public void Start(IServiceCollection serviceCollection, params object[] initArgs)
+        {
+            Client = (NetConnection)initArgs[0];
             Id = Client.Id;
+        }
+
+        public void Stop()
+        {
+            Client = null;
         }
     }
 }

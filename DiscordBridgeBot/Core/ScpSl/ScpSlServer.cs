@@ -1,8 +1,9 @@
-﻿using AzyWorks.Services;
+﻿using AzyWorks.System.Services;
 
-using DiscordBridge.CustomNetwork.PluginMessages;
+using DiscordBridge.CustomNetwork;
 using DiscordBridgeBot.Core.Configuration;
 using DiscordBridgeBot.Core.DiscordBot;
+using DiscordBridgeBot.Core.Extensions;
 using DiscordBridgeBot.Core.Logging;
 using DiscordBridgeBot.Core.Network;
 using DiscordBridgeBot.Core.RoleSync;
@@ -10,7 +11,7 @@ using DiscordBridgeBot.Core.RoleSync.Tickets;
 
 namespace DiscordBridgeBot.Core.ScpSl
 {
-    public class ScpSlServer : ServiceCollectionBase
+    public class ScpSlServer : ServiceCollection
     {
         private static HashSet<ScpSlServer> _servers = new HashSet<ScpSlServer>();
 
@@ -21,7 +22,7 @@ namespace DiscordBridgeBot.Core.ScpSl
         public int ServerPort { get; private set; }
 
         public string ServerName { get; private set; }
-        public string ServerPath { get => $"{Program.ConfigServersFolder}/Servers/{ServerPort}"; }
+        public string ServerPath { get => $"{Program.ConfigServersFolder}/{ServerPort}"; }
 
         public NetworkService Network { get; private set; }
         public DiscordService Discord { get; private set; }
@@ -32,7 +33,7 @@ namespace DiscordBridgeBot.Core.ScpSl
         public void LoadServer(SyncServerInfoMessage syncServerInfoMessage)
         {
             ServerPort = syncServerInfoMessage.Port;
-            ServerName = syncServerInfoMessage.Name;
+            ServerName = syncServerInfoMessage.Name.RemoveHtmlTags();
 
             if (!Directory.Exists(ServerPath)) Directory.CreateDirectory(ServerPath);
 

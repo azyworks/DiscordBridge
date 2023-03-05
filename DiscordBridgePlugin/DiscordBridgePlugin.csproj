@@ -21,6 +21,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -42,6 +43,9 @@
     </Reference>
     <Reference Include="CommandSystem.Core">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\CommandSystem.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="DiscordBridge.CustomNetwork">
+      <HintPath>..\DiscordBridge.CustomNetwork\bin\Debug\DiscordBridge.CustomNetwork.dll</HintPath>
     </Reference>
     <Reference Include="Mirror-Publicized">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Mirror-Publicized.dll</HintPath>
@@ -77,12 +81,20 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Config.cs" />
-    <Compile Include="Loader.cs" />
+    <Compile Include="ConfigService.cs" />
+    <Compile Include="Core\Extensions\HubExtensions.cs" />
+    <Compile Include="Core\Extensions\PermsExtensions.cs" />
+    <Compile Include="Core\Network\NetworkService.cs" />
+    <Compile Include="Core\Punishments\PunishmentsEvents.cs" />
+    <Compile Include="Core\Punishments\PunishmentsService.cs" />
+    <Compile Include="Core\RoleSync\Commands\LinkCommand.cs" />
+    <Compile Include="Core\RoleSync\RoleSyncConnection.cs" />
+    <Compile Include="Core\RoleSync\RoleSyncEvents.cs" />
+    <Compile Include="Core\RoleSync\RoleSyncService.cs" />
+    <Compile Include="Core\RoleSync\RoleSyncTicketsService.cs" />
+    <Compile Include="LoaderService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Core\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -1,14 +1,12 @@
-﻿using AzyWorks.Services;
+﻿using AzyWorks.System.Services;
 
-using DiscordBridge.CustomNetwork.PluginMessages.Tickets;
-using DiscordBridge.CustomNetwork.RoleSync;
-using DiscordBridge.CustomNetwork.ServerMessages.Tickets;
+using DiscordBridge.CustomNetwork.Tickets;
 using DiscordBridgeBot.Core.Logging;
 using DiscordBridgeBot.Core.Network;
 
 namespace DiscordBridgeBot.Core.RoleSync.Tickets
 {
-    public class RoleSyncTicketService : ServiceBase
+    public class RoleSyncTicketService : IService
     {
         private LogService _log;
 
@@ -18,13 +16,15 @@ namespace DiscordBridgeBot.Core.RoleSync.Tickets
         public NetworkService Network { get; private set; }
         public RoleSyncService RoleSync { get; private set; }
 
+        public IServiceCollection Collection { get; set; }
+
         public event Action<RoleSyncTicket, RoleSyncTicketInvalidationReason> OnTicketInvalidated;
         public event Action<RoleSyncTicket, ulong, RoleSyncTicketValidationReason> OnTicketValidated;
 
         public event Action<RoleSyncTicket> OnTicketReceived;
         public event Action<RoleSyncTicket> OnTicketDeleted;
 
-        public override void Setup(object[] args)
+        public void Start(IServiceCollection collection, object[] initArgs)
         {
             Task.Run(async () => await CleanTicketsAsync());
             Task.Run(async () => await DeteorateTicketsAsync());
@@ -34,11 +34,6 @@ namespace DiscordBridgeBot.Core.RoleSync.Tickets
             Network.Client.AddCallback<RoleSyncTicketRequestMessage>(HandleRoleSyncTicketRequest);
 
             _log = Collection.GetService<LogService>();
-        }
-
-        public override void Destroy()
-        {
-          
         }
 
         public void InvalidateTicket(RoleSyncTicket ticket, RoleSyncTicketInvalidationReason reason = RoleSyncTicketInvalidationReason.TimedOut)
@@ -83,6 +78,24 @@ namespace DiscordBridgeBot.Core.RoleSync.Tickets
             OnTicketValidated?.Invoke(ticket, validatedBy, reason);
 
             _log.Info($"Validated role sync ticket {ticket.Code}: {reason} by {validatedBy}");
+        }
+
+        public bool TryGetTicket(string code, out RoleSyncTicket ticket)
+        {
+            lock (ActiveTickets)
+            {
+                foreach (var activeTicket in ActiveTickets)
+                {
+                    if (activeTicket.Code == code)
+                    {
+                        ticket = activeTicket;
+                        return true;
+                    }
+                }
+            }
+
+            ticket = default;
+            return false;
         }
 
         private void HandleRoleSyncTicketRequest(RoleSyncTicketRequestMessage roleSyncTicketRequestMessage)
@@ -131,13 +144,23 @@ namespace DiscordBridgeBot.Core.RoleSync.Tickets
                     foreach (var toRemoveTicket in toRemove)
                     {
                         TimedOutTickets.RemoveWhere(x => x.Code == toRemoveTicket.Code);
-
                         OnTicketDeleted?.Invoke(toRemoveTicket);
                     }
                 }
 
                 toRemove.Clear();
             }
+        }
+
+        public bool IsValid()
+        {
+            return true;
+        }
+
+        public void Stop()
+        {
+            Network = null;
+            RoleSync = null;
         }
     }
 }

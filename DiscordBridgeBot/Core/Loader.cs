@@ -1,5 +1,5 @@
 ﻿using AzyWorks.Logging;
-using AzyWorks.Services;
+using AzyWorks.System.Services;
 
 using DiscordBridgeBot.Core.Configuration;
 using DiscordBridgeBot.Core.ConsoleCommands;
@@ -15,7 +15,7 @@ namespace DiscordBridgeBot.Core
         public static readonly string ConfigMainPath = $"{ConfigFolder}/Main.ini";
 
         public static LogService LoaderLog;
-        public static ServiceCollectionBase Services;
+        public static IServiceCollection Services;
 
         static Program()
         {

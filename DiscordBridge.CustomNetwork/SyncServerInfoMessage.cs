@@ -2,7 +2,7 @@
 
 using System.IO;
 
-namespace DiscordBridge.CustomNetwork.PluginMessages
+namespace DiscordBridge.CustomNetwork
 {
     public struct SyncServerInfoMessage : INetMessage
     {

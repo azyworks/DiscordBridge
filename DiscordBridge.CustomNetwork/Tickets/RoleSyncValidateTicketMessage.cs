@@ -1,10 +1,8 @@
 ﻿using AzyWorks.Networking;
 
-using DiscordBridge.CustomNetwork.RoleSync;
-
 using System.IO;
 
-namespace DiscordBridge.CustomNetwork.ServerMessages.Tickets
+namespace DiscordBridge.CustomNetwork.Tickets
 {
     public struct RoleSyncValidateTicketMessage : INetMessage
     {

@@ -1,6 +1,8 @@
 ﻿using System;
 
-namespace DiscordBridge.CustomNetwork.RoleSync
+using DiscordBridge.CustomNetwork.RoleSync;
+
+namespace DiscordBridge.CustomNetwork.Tickets
 {
     public struct RoleSyncTicket
     {

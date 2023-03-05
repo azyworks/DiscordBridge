@@ -44,18 +44,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="PluginMessages\SyncServerInfoMessage.cs" />
-    <Compile Include="PluginMessages\Tickets\RoleSyncTicketRequestMessage.cs" />
+    <Compile Include="PlayerData.cs" />
+    <Compile Include="SyncServerInfoMessage.cs" />
+    <Compile Include="Tickets\RoleSyncTicketRequestMessage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Punishments\PlayerBannedMessage.cs" />
+    <Compile Include="ReaderExtensions.cs" />
     <Compile Include="RoleSync\RoleSyncAccount.cs" />
-    <Compile Include="RoleSync\RoleSyncExtensions.cs" />
-    <Compile Include="RoleSync\RoleSyncTicket.cs" />
-    <Compile Include="RoleSync\RoleSyncTicketInvalidationReason.cs" />
-    <Compile Include="RoleSync\RoleSyncTicketValidationReason.cs" />
-    <Compile Include="ServerMessages\RequestServerInfoMessage.cs" />
-    <Compile Include="ServerMessages\RoleSync\RoleSyncRoleMessage.cs" />
-    <Compile Include="ServerMessages\Tickets\RoleSyncInvalidateTicketMessage.cs" />
-    <Compile Include="ServerMessages\Tickets\RoleSyncValidateTicketMessage.cs" />
+    <Compile Include="Tickets\RoleSyncTicket.cs" />
+    <Compile Include="Tickets\RoleSyncTicketInvalidationReason.cs" />
+    <Compile Include="Tickets\RoleSyncTicketValidationReason.cs" />
+    <Compile Include="RequestServerInfoMessage.cs" />
+    <Compile Include="RoleSync\RoleSyncRoleMessage.cs" />
+    <Compile Include="Tickets\RoleSyncInvalidateTicketMessage.cs" />
+    <Compile Include="Tickets\RoleSyncValidateTicketMessage.cs" />
+    <Compile Include="WriterExtensions.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
