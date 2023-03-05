@@ -1,4 +1,5 @@
-﻿using AzyWorks.System.Services;
+﻿using AzyWorks.Logging;
+using AzyWorks.System.Services;
 
 using DiscordBridgePlugin.Core.Network;
 using DiscordBridgePlugin.Core.Punishments;
@@ -22,6 +23,11 @@ namespace DiscordBridgePlugin
         {
             Loader = this;
 
+            LogStream.OnMessageLogged += (x, y, z) => Log.Raw($"{x} {y} {z}");
+
+            AzyWorks.Log.BlacklistedLevels.Clear();
+            AzyWorks.Log.BlacklistedSources.Clear();
+
             Log.Info($"Registering services ..", "Discord Bridge");
 
             AddService<NetworkService>(Config.NetworkPort);
@@ -30,6 +36,19 @@ namespace DiscordBridgePlugin
 
             Log.Info($"Services registered.", "Discord Bridge");
             Log.Info($"Loaded!", "Discord Bridge");
+        }
+
+        [PluginUnload]
+        public void Unload()
+        {
+            Log.Info($"Unregistering services ..", "Discord Bridge");
+
+            RemoveService<PunishmentsService>();
+            RemoveService<RoleSyncService>();
+            RemoveService<NetworkService>();
+
+            Log.Info($"Services unregistered.", "Discord Bridge");
+            Log.Info($"Unloaded!", "Discord Bridge");
         }
     }
 }

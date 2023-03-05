@@ -84,6 +84,7 @@
     <Compile Include="ConfigService.cs" />
     <Compile Include="Core\Extensions\HubExtensions.cs" />
     <Compile Include="Core\Extensions\PermsExtensions.cs" />
+    <Compile Include="Core\Network\Commands\ReconnectCommand.cs" />
     <Compile Include="Core\Network\NetworkService.cs" />
     <Compile Include="Core\Punishments\PunishmentsEvents.cs" />
     <Compile Include="Core\Punishments\PunishmentsService.cs" />

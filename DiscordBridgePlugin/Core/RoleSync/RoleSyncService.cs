@@ -41,6 +41,7 @@ namespace DiscordBridgePlugin.Core.RoleSync
             Tickets.OnRoleUpdated -= UpdateRole;
             Tickets.OnTicketValidated -= OnTicketValidated;
             Tickets.OnTicketInvalidated -= OnTicketInvalidated;
+            Tickets = null;
 
             EventManager.UnregisterEvents<RoleSyncEvents>(Collection);
             SaveConnections();
