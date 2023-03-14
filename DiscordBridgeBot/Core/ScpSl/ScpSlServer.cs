@@ -1,4 +1,5 @@
-﻿using AzyWorks.System.Services;
+﻿using AzyWorks.Networking.Server;
+using AzyWorks.System.Services;
 
 using DiscordBridge.CustomNetwork;
 using DiscordBridgeBot.Core.Configuration;
@@ -6,8 +7,12 @@ using DiscordBridgeBot.Core.DiscordBot;
 using DiscordBridgeBot.Core.Extensions;
 using DiscordBridgeBot.Core.Logging;
 using DiscordBridgeBot.Core.Network;
+using DiscordBridgeBot.Core.PlayerCache;
+using DiscordBridgeBot.Core.Punishments;
 using DiscordBridgeBot.Core.RoleSync;
 using DiscordBridgeBot.Core.RoleSync.Tickets;
+using DiscordBridgeBot.Core.ScpSlLogs;
+using DiscordBridgeBot.Core.Whitelists;
 
 namespace DiscordBridgeBot.Core.ScpSl
 {
@@ -24,58 +29,84 @@ namespace DiscordBridgeBot.Core.ScpSl
         public string ServerName { get; private set; }
         public string ServerPath { get => $"{Program.ConfigServersFolder}/{ServerPort}"; }
 
-        public NetworkService Network { get; private set; }
+        public NetworkService Network { get; set; }
         public DiscordService Discord { get; private set; }
         public RoleSyncService RoleSync { get; private set; }
         public RoleSyncTicketService RoleSyncTickets { get => RoleSync?.Tickets; }
         public ConfigManagerService ConfigManager { get; private set; }
+        public NetConnection Connection { get; set; }
 
-        public void LoadServer(SyncServerInfoMessage syncServerInfoMessage)
+        public LogService Log { get => _log; }
+
+        public void LoadServer(SyncServerInfoMessage syncServerInfoMessage, NetworkService networkService, NetConnection connection)
         {
-            ServerPort = syncServerInfoMessage.Port;
-            ServerName = syncServerInfoMessage.Name.RemoveHtmlTags();
+            try
+            {
+                ServerPort = syncServerInfoMessage.Port;
+                ServerName = syncServerInfoMessage.Name.RemoveHtmlTags();
 
-            if (!Directory.Exists(ServerPath)) Directory.CreateDirectory(ServerPath);
+                if (!Directory.Exists(ServerPath)) Directory.CreateDirectory(ServerPath);
 
-            AddService<LogService>($"SCP SL ({ServerPort})");
-            AddService<ConfigManagerService>($"{ServerPath}/main.ini", null);
-            AddService<DiscordService>();
-            AddService<RoleSyncService>();
+                AddService<LogService>($"SCP SL ({ServerPort})");
 
-            Network = GetService<NetworkService>();
-            Discord = GetService<DiscordService>();
-            RoleSync = GetService<RoleSyncService>();
-            ConfigManager = GetService<ConfigManagerService>();
+                _log = GetService<LogService>();
 
-            _log = GetService<LogService>();
-            _log.Info($"Logger started for server: {ServerName} on port: {ServerPort}");
+                AddService<ConfigManagerService>($"{ServerPath}/main.ini", null);
+                AddService<DiscordService>();
+                AddService<RoleSyncService>();
+                AddService<PlayerCacheService>();
+                AddService<WhitelistService>();
+                AddService<PunishmentsService>();
+                AddService<BanLogsService>();
 
-            ConfigManager.ConfigHandler.RegisterConfigs(this);
-            ConfigManager.ReloadAll();
+                Discord = GetService<DiscordService>();
+                RoleSync = GetService<RoleSyncService>();
+                ConfigManager = GetService<ConfigManagerService>();
 
-            Discord.Connect();
+                ConfigManager.ConfigHandler.RegisterConfigs(this);
+                ConfigManager.ReloadAll();
 
-            _log.Info("Your server is ready!");
+                Discord.Connect();
+
+                _log.Info("Your server is ready!");
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex);
+            }
         }
 
         public void UnloadServer()
         {
-            _servers.RemoveWhere(x => x == this);
-            _log.Info("Your server is unloading ..");
+            try
+            {
+                _servers.RemoveWhere(x => x.Connection.Id == Connection.Id);
+                _log.Info("Your server is unloading ..");
 
-            RemoveService<NetworkService>();
-            RemoveService<DiscordService>();
-            RemoveService<RoleSyncService>();
-            RemoveService<ConfigManagerService>();
-            RemoveService<LogService>();
+                RemoveService<DiscordService>();
+                RemoveService<PunishmentsService>();
+                RemoveService<BanLogsService>();
+                RemoveService<WhitelistService>();
+                RemoveService<PlayerCacheService>();
+                RemoveService<RoleSyncService>();
+                RemoveService<NetworkService>();
+                RemoveService<ConfigManagerService>();
+                RemoveService<LogService>();
 
-            _log.Info("Server unloaded.");
+                _log.Info("Server unloaded.");
+
+                Network = null;
+                Discord = null;
+                Connection = null;
+                RoleSync = null;
+                ConfigManager = null;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex);
+            }
+
             _log = null;
-
-            Network = null;
-            Discord = null;
-            RoleSync = null;
-            ConfigManager = null;
         }
     }
 }

@@ -44,11 +44,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="PlayerData.cs" />
+    <Compile Include="PlayerCache\PlayerCacheRequestMessage.cs" />
+    <Compile Include="PlayerCache\PlayerCacheResponseMessage.cs" />
+    <Compile Include="PlayerCache\PlayerCacheUpdateMessage.cs" />
+    <Compile Include="Punishments\PunishmentEditDurationMessage.cs" />
+    <Compile Include="Punishments\PunishmentEditReasonMessage.cs" />
+    <Compile Include="Punishments\PunishmentIssuedMessage.cs" />
+    <Compile Include="Punishments\PunishmentRemoveMessage.cs" />
+    <Compile Include="Punishments\PunishmentType.cs" />
+    <Compile Include="RemoteAdmin\RemoteAdminExecuteMessage.cs" />
+    <Compile Include="RemoteAdmin\RemoteAdminExecuteResponseMessage.cs" />
+    <Compile Include="Reports\ReportMessage.cs" />
+    <Compile Include="RolePlay\RolePlayMapping.cs" />
+    <Compile Include="RolePlay\RolePlayRole.cs" />
     <Compile Include="SyncServerInfoMessage.cs" />
     <Compile Include="Tickets\RoleSyncTicketRequestMessage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Punishments\PlayerBannedMessage.cs" />
     <Compile Include="ReaderExtensions.cs" />
     <Compile Include="RoleSync\RoleSyncAccount.cs" />
     <Compile Include="Tickets\RoleSyncTicket.cs" />
@@ -58,6 +69,10 @@
     <Compile Include="RoleSync\RoleSyncRoleMessage.cs" />
     <Compile Include="Tickets\RoleSyncInvalidateTicketMessage.cs" />
     <Compile Include="Tickets\RoleSyncValidateTicketMessage.cs" />
+    <Compile Include="Whitelists\RequestWhitelistStateMessage.cs" />
+    <Compile Include="Whitelists\WhitelistModifyMessage.cs" />
+    <Compile Include="Whitelists\WhitelistModifyStateMessage.cs" />
+    <Compile Include="Whitelists\WhitelistStateResponseMessage.cs" />
     <Compile Include="WriterExtensions.cs" />
   </ItemGroup>
   <ItemGroup />

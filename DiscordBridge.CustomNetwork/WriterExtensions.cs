@@ -25,28 +25,6 @@ namespace DiscordBridge.CustomNetwork
             return writer;
         }
 
-        public static BinaryWriter Write(this BinaryWriter writer, PlayerData player)
-        {
-            writer.Write(player.Partial);
-
-            if (player.Partial)
-            {
-                writer.Write(player.Username);
-                writer.Write(player.UserId);
-            }
-            else
-            {
-                writer.Write(player.Username);
-                writer.Write(player.UserId);
-                writer.Write(player.Role);
-                writer.Write(player.RoleName);
-                writer.Write(player.Ip);
-                writer.Write(player.PlayerId);
-            }
-
-            return writer;
-        }
-
         public static BinaryWriter Write(this BinaryWriter writer, DateTime dateTime)
         {
             writer.Write(dateTime.ToBinary());

@@ -2,16 +2,22 @@
 using AzyWorks.System.Services;
 
 using DiscordBridgePlugin.Core.Network;
+using DiscordBridgePlugin.Core.PlayerCache;
 using DiscordBridgePlugin.Core.Punishments;
 using DiscordBridgePlugin.Core.RoleSync;
-
+using DiscordBridgePlugin.Core.Whitelists;
+using HarmonyLib;
 using PluginAPI.Core;
 using PluginAPI.Core.Attributes;
+using PluginAPI.Events;
+using System;
 
 namespace DiscordBridgePlugin
 {
     public class LoaderService : ServiceCollection
     {
+        private static Harmony _harmony;
+
         [PluginConfig]
         public ConfigService ConfigService;
 
@@ -31,8 +37,12 @@ namespace DiscordBridgePlugin
             Log.Info($"Registering services ..", "Discord Bridge");
 
             AddService<NetworkService>(Config.NetworkPort);
-            AddService<RoleSyncService>();
-            AddService<PunishmentsService>();
+
+            EventManager.RegisterEvents<PlayerCacheEvents>(this);
+            EventManager.RegisterEvents<PunishmentsEvents>(this);
+
+            _harmony = new Harmony($"db_{DateTime.Now.Ticks}");
+            _harmony.PatchAll();
 
             Log.Info($"Services registered.", "Discord Bridge");
             Log.Info($"Loaded!", "Discord Bridge");
@@ -43,9 +53,10 @@ namespace DiscordBridgePlugin
         {
             Log.Info($"Unregistering services ..", "Discord Bridge");
 
-            RemoveService<PunishmentsService>();
-            RemoveService<RoleSyncService>();
             RemoveService<NetworkService>();
+
+            EventManager.UnregisterEvents<PunishmentsEvents>(this);
+            EventManager.UnregisterEvents<PlayerCacheEvents>(this);
 
             Log.Info($"Services unregistered.", "Discord Bridge");
             Log.Info($"Unloaded!", "Discord Bridge");

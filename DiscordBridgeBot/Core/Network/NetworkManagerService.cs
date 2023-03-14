@@ -138,12 +138,16 @@ namespace DiscordBridgeBot.Core.Network
                 _log.Info($"Received the SyncServerInfoMessage for client {client.EndPoint}! Setting up the server ..");
 
                 var server = new ScpSlServer();
-                var net = server.AddService<NetworkService>(client);
 
-                server.LoadServer(x);
+                server.AddService<NetworkService>(client);
+
+                var net = server.GetService<NetworkService>();
+
+                server.Connection = client;
+                server.Network = net;
+                server.LoadServer(x, net, client);
 
                 _knownClients[client.Id] = net;
-
                 _log.Info("Server setup completed.");
             });
 

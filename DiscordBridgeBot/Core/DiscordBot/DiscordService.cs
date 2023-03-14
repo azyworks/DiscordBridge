@@ -5,6 +5,8 @@ using Discord.Commands;
 using Discord.WebSocket;
 using DiscordBridgeBot.Core.Configuration;
 using DiscordBridgeBot.Core.Logging;
+using DiscordBridgeBot.Core.Punishments;
+using DiscordBridgeBot.Core.ScpSlLogs;
 
 namespace DiscordBridgeBot.Core.DiscordBot
 {
@@ -12,6 +14,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
     {
         private LogService _log;
 
+        public DiscordComponents Components { get; } = new DiscordComponents();
         public DiscordSocketClient Client { get; private set; }
         public CommandService Commands { get; private set; }
         public IServiceProvider CommandsServices { get; private set; }
@@ -24,6 +27,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
 
         public IServiceCollection Collection { get; set; }
 
+        public bool IsReady { get; private set; }
 
         [Config("Discord.Token", "The token to use for your Discord bot.")]
         public string Token = "none";
@@ -49,10 +53,40 @@ namespace DiscordBridgeBot.Core.DiscordBot
             0
         };
 
+        [Config("BanLog.ShowIPs", "Whether or not to show IP addresses in admin-only channels.")]
+        public bool ShowIpAddressInAdminOnly { get; set; } = true;
+
         [Config("Discord.Permissions", "A list of all custom permissions.")]
         public Dictionary<ulong, DiscordPermission[]> Permissions = new Dictionary<ulong, DiscordPermission[]>()
         {
             [0] = new DiscordPermission[] { DiscordPermission.Linking }
+        };
+
+        [Config("BanLog.ChannelIds", "A list of channel IDs for the ban log.")]
+        public Dictionary<BanLogChannelType, List<ulong>> ConfigChannelIds { get; set; } = new Dictionary<BanLogChannelType, List<ulong>>()
+        {
+            [BanLogChannelType.AdminOnly] = new List<ulong>() { 0, 1 },
+            [BanLogChannelType.Public] = new List<ulong>() { 2, 3 }
+        };
+
+        [Config("BanLog.RevokeChannelId", "The ID of the channel to send ban revoke requests to.")]
+        public ulong RevokeRequestsChannelId { get; set; } = 0;
+
+        [Config("RolePlay.RoleRequestsChannelId", "The channel to send role requests into.")]
+        public ulong RoleRequestsChannelId { get; set; } = 0;
+
+        [Config("RolePlay.RoleRequestsAllowedChannels", "The list of channels that can be used to submit role requests.")]
+        public ulong[] RoleRequestsAllowedChannelIds { get; set; } = new ulong[]
+        {
+            0, 
+            1
+        };
+
+        [Config("Reports.Channels", "A list of channels to send in-game reports to.")]
+        public Dictionary<ulong, ulong[]> ReportChannels { get; set; } = new Dictionary<ulong, ulong[]>()
+        {
+            [0] = new ulong[] { 0, 1 },
+            [1] = new ulong[] { 2, 3 }
         };
 
         public event Action<SocketGuildUser, SocketGuild> OnReady;
@@ -60,10 +94,16 @@ namespace DiscordBridgeBot.Core.DiscordBot
         public void Start(IServiceCollection collection, object[] initArgs)
         {
             _log = Collection.GetService<LogService>();
+
             Collection.GetService<ConfigManagerService>()?.ConfigHandler.RegisterConfigs(this);
         }
 
-        public void Stop() => Disconnect();
+        public void Stop()
+        {
+            Collection.RemoveService<PunishmentsService>();
+
+            Disconnect();
+        }
 
         public void Connect()
         {
@@ -97,11 +137,25 @@ namespace DiscordBridgeBot.Core.DiscordBot
             });
 
             CommandsServices = Collection.ToProvider();
-
             Commands.CommandExecuted += OnCommandExecuted;
+
             Client.GuildAvailable += OnGuildAvailable;
+            Client.SelectMenuExecuted += OnSelectMenuExecuted;
+            Client.ButtonExecuted += OnButtonExecuted;
+
+            Components.AddHandlers(this);
 
             Task.Run(async () => await ConnectAsync());
+        }
+
+        private async Task OnSelectMenuExecuted(SocketMessageComponent component)
+        {
+
+        }
+        
+        private async Task OnButtonExecuted(SocketMessageComponent component)
+        {
+
         }
 
         public void Disconnect()
@@ -117,24 +171,35 @@ namespace DiscordBridgeBot.Core.DiscordBot
         {
             if (permission is DiscordPermission.None)
                 return true;
-            else if (permission is DiscordPermission.Administrator
-                && ((user.Guild.OwnerId == user.Id) || AdminOverride
-                ? (user.GuildPermissions.Administrator || user.Roles.Any(x => x.Permissions.Administrator)) : false))
-                return true;
-            else if (HasPermission(user, DiscordPermission.Administrator))
-                return true;
-            else
+
+            if (permission is DiscordPermission.Administrator || AdminOverride)
             {
-                if (Permissions.TryGetValue(user.Id, out var perms) && perms.Contains(permission))
-                    return true;
-                else
+                if (user.GuildPermissions.Administrator)
                 {
-                    foreach (var role in user.Roles)
+                    return true;
+                }
+
+                if (user.Roles.Any(x => x.Permissions.Administrator))
+                {
+                    return true;
+                }
+            }
+
+            if (Permissions.TryGetValue(user.Id, out var userPerms))
+            {
+                if (userPerms.Contains(permission))
+                {
+                    return true;
+                }
+            }
+
+            foreach (var role in user.Roles)
+            {
+                if (Permissions.TryGetValue(role.Id, out var rolePerms))
+                {
+                    if (rolePerms.Contains(permission))
                     {
-                        if (Permissions.TryGetValue(role.Id, out perms) && perms.Contains(permission))
-                        {
-                            return true;
-                        }
+                        return true;
                     }
                 }
             }
@@ -145,6 +210,12 @@ namespace DiscordBridgeBot.Core.DiscordBot
         public bool TryGetMember(SocketUser user, out SocketGuildUser member)
         {
             member = Guild.GetUser(user.Id);
+            return member != null;
+        }
+
+        public bool TryGetMember(ulong memberId, out SocketGuildUser member)
+        {
+            member = Guild.GetUser(memberId);
             return member != null;
         }
 
@@ -167,8 +238,8 @@ namespace DiscordBridgeBot.Core.DiscordBot
 
         internal async Task ConnectAsync()
         {
-            await Client.StartAsync();
             await Client.LoginAsync(TokenType.Bot, Token);
+            await Client.StartAsync();
 
             await Commands.AddModuleAsync<DiscordCommandService>(CommandsServices);
 
@@ -177,8 +248,11 @@ namespace DiscordBridgeBot.Core.DiscordBot
         
         internal async Task DisconnectAsync()
         {
+            await Client.LogoutAsync();
             await Client.StopAsync();
             await Client.DisposeAsync();
+
+            Components.RemoveHandlers();
 
             Client = null;
 
@@ -212,6 +286,11 @@ namespace DiscordBridgeBot.Core.DiscordBot
             }
 
             return Task.CompletedTask;
+        }
+
+        private async Task OnInteraction()
+        {
+
         }
 
         private async Task OnMessageReceived(SocketMessage message)
@@ -289,6 +368,8 @@ namespace DiscordBridgeBot.Core.DiscordBot
             OnReady?.Invoke(User, Guild);
 
             _log.Info("Discord is ready!");
+
+            IsReady = true;
 
             return Task.CompletedTask;
         }

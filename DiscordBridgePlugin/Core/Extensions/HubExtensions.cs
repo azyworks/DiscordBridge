@@ -1,8 +1,4 @@
-﻿using CommandSystem;
-
-using DiscordBridge.CustomNetwork;
-
-using RemoteAdmin;
+﻿using PluginAPI.Core;
 
 namespace DiscordBridgePlugin.Core.Extensions
 {
@@ -17,26 +13,9 @@ namespace DiscordBridgePlugin.Core.Extensions
 
             hub.serverRoles.RefreshPermissions();
             hub.characterClassManager.ConsolePrint($"[Role Sync] Updated role: {role}", "green");
-        }
-        
-        public static PlayerData ToData(this ReferenceHub hub)
-        {
-            return new PlayerData(
-                hub.nicknameSync.Network_myNickSync,
-                hub.characterClassManager.UserId,
-                hub.GetRole(),
-                hub.roleManager.CurrentRole.RoleName,
-                hub.connectionToClient.address,
-                hub.PlayerId);
-        }
 
-        public static PlayerData ToData(this ICommandSender sender)
-        {
-            if (sender is PlayerCommandSender player)
-                return player.ReferenceHub.ToData();
-
-            return new PlayerData("Dedicated Server", "ID_Host");
-        }
+            Log.Info($"Set server role of {hub.nicknameSync.Network_myNickSync} ({hub.characterClassManager.UserId}) to {role}");
+        }       
 
         public static string GetRole(this ReferenceHub hub)
         {

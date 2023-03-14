@@ -7,6 +7,16 @@
         Administrator,
 
         Linking,
-        RoleSyncManagement
+        RoleSyncManagement,
+
+        PlayerCacheAccess,
+
+        WhitelistManagement,
+
+        SshExecute,
+        RemoteAdminExecute,
+
+        BanManagement,
+        BanEditing
     }
 }

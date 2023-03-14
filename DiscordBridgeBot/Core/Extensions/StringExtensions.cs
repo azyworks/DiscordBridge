@@ -5,6 +5,24 @@ namespace DiscordBridgeBot.Core.Extensions
 {
     public static class StringExtensions
     {
+        public static bool IsTrue(this string str)
+        {
+            if (bool.TryParse(str, out bool result) && result)
+                return true;
+
+            if (byte.TryParse(str, out var boolByte) && boolByte > 0)
+                return true;
+
+            str = str.ToLower();
+            if (str == "y" || str == "ano" || str == "jo" || str == "j" || str == "jj" || str == "yes")
+                return true;
+
+            return false;
+        }
+
+        public static TimeSpan ToSpan(this string str)
+            => TimeSpan.FromSeconds(str.ToSeconds());
+
         public static string RemoveHtmlTags(this string text)
         {
             var openTagIndexes = Regex.Matches(text, "<").Cast<Match>().Select(m => m.Index).ToList();

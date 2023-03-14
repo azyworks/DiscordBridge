@@ -1,4 +1,5 @@
 ﻿using AzyWorks.System;
+using Discord;
 using Discord.WebSocket;
 
 namespace DiscordBridgeBot.Core.DiscordBot
@@ -33,7 +34,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                 return guildAvatarUrl;
         }
 
-        public static async Task<SocketMessage> GetNextMessageAsync(this ISocketMessageChannel channel, ulong userId, DiscordService discordService)
+        public static async Task<SocketMessage> GetNextMessageAsync(this IMessageChannel channel, ulong userId, DiscordService discordService)
         {
             var id = RandomGenerator.Ticket(5);
             var curTimeout = 0;

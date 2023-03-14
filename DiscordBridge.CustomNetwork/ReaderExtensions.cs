@@ -31,36 +31,6 @@ namespace DiscordBridge.CustomNetwork
             return ticket;
         }
 
-        public static PlayerData ReadPlayerData(this BinaryReader reader)
-        {
-            var partial = reader.ReadBoolean();
-
-            if (partial)
-            {
-                var data = new PlayerData();
-
-                data.Partial = true;
-                data.Username = reader.ReadString();
-                data.UserId = reader.ReadString();
-
-                return data;
-            }
-            else
-            {
-                var data = new PlayerData();
-
-                data.Partial = false;
-                data.Username = reader.ReadString();
-                data.UserId = reader.ReadString();
-                data.Role = reader.ReadString();
-                data.RoleName = reader.ReadString();
-                data.Ip = reader.ReadString();
-                data.PlayerId = reader.ReadInt32();
-
-                return data;
-            }
-        }
-
         public static DateTime ReadDateTime(this BinaryReader reader)
             => DateTime.FromBinary(reader.ReadInt64());
 
