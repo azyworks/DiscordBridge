@@ -38,9 +38,6 @@ namespace DiscordBridgePlugin
 
             AddService<NetworkService>(Config.NetworkPort);
 
-            EventManager.RegisterEvents<PlayerCacheEvents>(this);
-            EventManager.RegisterEvents<PunishmentsEvents>(this);
-
             _harmony = new Harmony($"db_{DateTime.Now.Ticks}");
             _harmony.PatchAll();
 
@@ -54,9 +51,6 @@ namespace DiscordBridgePlugin
             Log.Info($"Unregistering services ..", "Discord Bridge");
 
             RemoveService<NetworkService>();
-
-            EventManager.UnregisterEvents<PunishmentsEvents>(this);
-            EventManager.UnregisterEvents<PlayerCacheEvents>(this);
 
             Log.Info($"Services unregistered.", "Discord Bridge");
             Log.Info($"Unloaded!", "Discord Bridge");

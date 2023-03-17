@@ -61,9 +61,6 @@ namespace DiscordBridgePlugin.Core.Punishments
             var id = ExtractIssuerId(banDetails);
             var name = ExtractIssuerName(banDetails, id);
 
-            Log.Info($"Extracted ID {id} from {banDetails.Issuer}");
-            Log.Info($"Extracted Name {name} from {banDetails.Issuer}");
-
             NetClient.Send(new NetPayload()
                 .WithMessages(new PunishmentIssuedMessage(
                     id,
@@ -80,8 +77,6 @@ namespace DiscordBridgePlugin.Core.Punishments
                     new System.DateTime(banDetails.Expires),
 
                     PunishmentType.Ban)));
-
-            Log.Info($"Sent punishment log ({id};{name};{banDetails.Id};{banDetails.OriginalName};{banDetails.Reason};{banDetails.IssuanceTime};{banDetails.Expires})");
         }
 
         private string ExtractIssuerName(BanDetails banDetails, string id)

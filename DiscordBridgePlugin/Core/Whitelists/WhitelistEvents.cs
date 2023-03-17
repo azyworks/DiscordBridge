@@ -26,7 +26,10 @@ namespace DiscordBridgePlugin.Core.Whitelists
             {
                 if (!Whitelists.Whitelisted.Contains(player.UserId))
                 {
-                    if (LoaderService.Config.WhitelistIgnored.Contains(player.UserId) || LoaderService.Config.WhitelistIgnored.Contains(player.ReferenceHub.GetRole()))
+                    if (LoaderService.Config.WhitelistIgnored.Contains(player.UserId) 
+                        || LoaderService.Config.WhitelistIgnored.Contains(player.ReferenceHub.GetRole())
+                        || player.IsNorthwoodStaff 
+                        || player.IsGlobalModerator)
                         return;
 
                     player.Kick(LoaderService.Config.WhitelistKickMessage);

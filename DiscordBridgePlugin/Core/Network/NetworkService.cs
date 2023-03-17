@@ -24,13 +24,12 @@ using PluginAPI.Enums;
 using PluginAPI.Events;
 using DiscordBridge.CustomNetwork.PlayerCache;
 using DiscordBridgePlugin.Core.PlayerCache;
+using DiscordBridgePlugin.Core.Punishments;
 
 namespace DiscordBridgePlugin.Core.Network
 {
     public class NetworkService : IService
     {
-        private bool _synchronizedInfo;
-
         public IServiceCollection Collection { get; set; }
 
         public bool IsValid()
@@ -61,6 +60,9 @@ namespace DiscordBridgePlugin.Core.Network
             NetClient.OnStopped += OnStopped;
             NetClient.OnPayloadReceived += OnPayload;
 
+            EventManager.RegisterEvents<PlayerCacheEvents>(Collection);
+            EventManager.RegisterEvents<PunishmentsEvents>(Collection);
+
             Log.Info($"Connecting to: {NetClient.Config.ServerEndpoint}", "Discord Bridge :: NetworkService");
 
             NetClient.Start();
@@ -68,6 +70,9 @@ namespace DiscordBridgePlugin.Core.Network
 
         public void Stop()
         {
+            EventManager.UnregisterEvents<PunishmentsEvents>(Collection);
+            EventManager.UnregisterEvents<PlayerCacheEvents>(Collection);
+
             Collection.RemoveService<WhitelistsService>();
             Collection.RemoveService<RoleSyncService>();
 
@@ -90,16 +95,12 @@ namespace DiscordBridgePlugin.Core.Network
             {
                 try
                 {
-                    Log.Info("Received the RequestServerInfoMessage.");
-
                     ConfigFile.ReloadGameConfigs();
 
                     NetClient.Send(new NetPayload()
                         .WithMessage(new SyncServerInfoMessage(
                             ConfigFile.ServerConfig.GetString("server_name", "My Server Name"),
                             Server.Port)));
-
-                    Log.Info("Sent the SyncServerInfoMessage");
 
                     if (!Collection.HasService<RoleSyncService>())
                         Collection.AddService<RoleSyncService>();
@@ -132,7 +133,6 @@ namespace DiscordBridgePlugin.Core.Network
             if (payload.Messages.Any(x => x is PunishmentEditDurationMessage))
             {
                 var msg = (PunishmentEditDurationMessage)payload.Messages.First(x => x is PunishmentEditDurationMessage);
-
                 var newTicks = (DateTime.Now.ToLocalTime() + msg.Duration).Ticks;
                 var idBan = BanHandler.GetBan(msg.TargetId, BanHandler.BanType.UserId);
                 var ipBan = BanHandler.GetBan(msg.TargetIp, BanHandler.BanType.IP);
