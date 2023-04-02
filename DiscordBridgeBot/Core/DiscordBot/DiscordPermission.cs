@@ -17,6 +17,14 @@
         RemoteAdminExecute,
 
         BanManagement,
-        BanEditing
+        BanEditing,
+
+        UploadSchematics,
+        UploadNwApiPlugins,
+        UploadExiledPlugins,
+
+        ServerStart,
+        ServerStop,
+        ServerRestart
     }
 }

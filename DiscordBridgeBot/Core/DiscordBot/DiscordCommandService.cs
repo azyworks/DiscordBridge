@@ -15,9 +15,36 @@ using DiscordBridgeBot.Core.Whitelists;
 using DiscordBridgeBot.Core.PlayerCache;
 using DiscordBridgeBot.Core.IpApi;
 using DiscordBridgeBot.Core.SteamIdApi;
+using System.Net;
+using System.Reflection;
+using Discord.WebSocket;
 
 namespace DiscordBridgeBot.Core.DiscordBot
 {
+    public static class TempDir
+    {
+        public static string Path;
+
+        static TempDir()
+        {
+            Path = $"{Directory.GetCurrentDirectory()}/Temporary";
+
+            if (!Directory.Exists(Path))
+                Directory.CreateDirectory(Path);
+        }
+
+        public static string Get(string fileName)
+            => $"{Path}/{fileName}";
+
+        public static string Place(string fileName)
+        {
+            var path = Get(fileName);
+            if (File.Exists(path))
+                File.Delete(path);
+            return path;
+        }
+    }
+
     public class DiscordCommandService : ModuleBase<SocketCommandContext>
     {
         public DiscordService Discord { get; private set; }
@@ -250,9 +277,8 @@ namespace DiscordBridgeBot.Core.DiscordBot
                                     .WithIconUrl(Discord.User.GetIconUrl()))
                                 .WithColor(Color.Blue)
                                 .WithDescription(
-                                    @$"**ℹ️ Vyber si z těchto rolí (do další zprávy napiš číslo nebo jméno role).**
-
-                               {builder}")
+                                    $"**ℹ️ Vyber si z těchto rolí (do další zprávy napiš číslo nebo jméno role).**\n" +
+                                    $"{builder}")
                                 .Build());
 
                             PoolManager.Return(builder);
@@ -266,7 +292,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                                         .WithName(Server.ServerName)
                                         .WithIconUrl(Discord.User.GetIconUrl()))
                                     .WithColor(Color.Red)
-                                    .WithDescription(@"❌ **Čas vypršel.**")
+                                    .WithDescription("❌ **Čas vypršel.**")
                                     .Build());
                             }
 
@@ -289,7 +315,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                                         .WithName(Server.ServerName)
                                         .WithIconUrl(Discord.User.GetIconUrl()))
                                     .WithColor(Color.Red)
-                                    .WithDescription(@$"❌ **Role `{next.CleanContent}` nebyla nalezena mezi dostupnými.**")
+                                    .WithDescription($"❌ **Role `{next.CleanContent}` nebyla nalezena mezi dostupnými.**")
                                     .Build());
                             }
                             else
@@ -302,8 +328,8 @@ namespace DiscordBridgeBot.Core.DiscordBot
                                         .WithIconUrl(Discord.User.GetIconUrl()))
                                     .WithColor(Color.Blue)
                                     .WithDescription(
-                                        @$"✅ **Byla ti přiřazena role `{chosenRole.Name}`!**
-                                       ℹ️ **Roli na serveru si můžeš změnit příkazem `role`.")
+                                        $"✅ **Byla ti přiřazena role `{chosenRole.Name}`!**\n" +
+                                        "ℹ️ **Roli na serveru si můžeš změnit příkazem `role`.")
                                     .Build());
                             }
                         }
@@ -336,7 +362,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                             .WithName(Server.ServerName)
                             .WithIconUrl(Discord.User.GetIconUrl()))
                         .WithColor(Color.Red)
-                        .WithDescription(@"❌ `Discord::TryGetMember`")
+                        .WithDescription("❌ `Discord::TryGetMember`")
                         .Build());
                 }
             }
@@ -367,7 +393,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                             .WithName(Server.ServerName)
                             .WithIconUrl(Discord.User.GetIconUrl()))
                         .WithColor(Color.Blue)
-                        .WithDescription(@"❌ **Chybí ti permise!**")
+                        .WithDescription("❌ **Chybí ti permise!**")
                         .Build());
 
                     return;
@@ -381,7 +407,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                             .WithName(Server.ServerName)
                             .WithIconUrl(Discord.User.GetIconUrl()))
                         .WithColor(Color.Red)
-                        .WithDescription(@"❌ Player Cache služba není aktivní.")
+                        .WithDescription("❌ Player Cache služba není aktivní.")
                         .Build());
 
                     return;
@@ -454,7 +480,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                             .WithName(Server.ServerName)
                             .WithIconUrl(Discord.User.GetIconUrl()))
                         .WithColor(Color.Blue)
-                        .WithDescription(@"❌ **Chybí ti permise!**")
+                        .WithDescription("❌ **Chybí ti permise!**")
                         .Build());
 
                     return;
@@ -468,7 +494,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                             .WithName(Server.ServerName)
                             .WithIconUrl(Discord.User.GetIconUrl()))
                         .WithColor(Color.Red)
-                        .WithDescription(@"❌ Whitelist služba není aktivní.")
+                        .WithDescription("❌ Whitelist služba není aktivní.")
                         .Build());
 
                     return;
@@ -485,7 +511,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                                 .WithName(Server.ServerName)
                                 .WithIconUrl(Discord.User.GetIconUrl()))
                             .WithColor(Color.Red)
-                            .WithDescription(@"✅ **Whitelist aktivován.**")
+                            .WithDescription("✅ **Whitelist aktivován.**")
                             .Build());
 
                         return;
@@ -497,7 +523,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                                 .WithName(Server.ServerName)
                                 .WithIconUrl(Discord.User.GetIconUrl()))
                             .WithColor(Color.Red)
-                            .WithDescription(@"✅ **Whitelist deaktivován.**")
+                            .WithDescription("✅ **Whitelist deaktivován.**")
                             .Build());
 
                         return;
@@ -519,7 +545,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                                         .WithAuthor(new EmbedAuthorBuilder()
                                             .WithName(Server.ServerName)
                                             .WithIconUrl(Discord.User.GetIconUrl()))
-                                        .WithColor(Color.Red)
+                                        .WithColor(Color.Green)
                                         .WithDescription($"✅ **{member.Mention} ({account.UserId}) byl přidán na whitelist.**")
                                         .Build());
                                 }
@@ -531,7 +557,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                                         .WithAuthor(new EmbedAuthorBuilder()
                                             .WithName(Server.ServerName)
                                             .WithIconUrl(Discord.User.GetIconUrl()))
-                                        .WithColor(Color.Red)
+                                        .WithColor(Color.Green)
                                         .WithDescription($"✅ **{member.Mention} ({account.UserId}) byl odebrán z whitelistu.**")
                                         .Build());
                                 }
@@ -636,7 +662,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                                 .WithAuthor(new EmbedAuthorBuilder()
                                     .WithName(Server.ServerName)
                                     .WithIconUrl(Discord.User.GetIconUrl()))
-                            .WithColor(Color.Red)
+                            .WithColor(Color.Green)
                                 .WithDescription($"✅ **ID `{id}` bylo přidáno na whitelist.**")
                                 .Build());
                         }
@@ -648,7 +674,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
                                 .WithAuthor(new EmbedAuthorBuilder()
                                     .WithName(Server.ServerName)
                                     .WithIconUrl(Discord.User.GetIconUrl()))
-                            .WithColor(Color.Red)
+                            .WithColor(Color.Green)
                                 .WithDescription($"✅ **ID `{id}` bylo odebráno z whitelistu.**")
                                 .Build());
                         }
@@ -667,39 +693,228 @@ namespace DiscordBridgeBot.Core.DiscordBot
             }
         }
 
-        [Command("ssh")]
-        public async Task SshAsync([Remainder] string command)
+        public async Task UploadSchematicAsync(Attachment attachment)
         {
-            if (!Discord.TryGetMember(Context.User, out var member))
+            var dest = $"{Discord.UploadSchematicsPath}/{attachment.Filename}";
+            var destDir = $"{Discord.UploadSchematicsPath}/{Path.GetFileNameWithoutExtension(dest)}";
+
+            if (!Directory.Exists(destDir))
+                Directory.CreateDirectory(destDir);
+
+            dest = $"{destDir}/{attachment.Filename}";
+
+            if (File.Exists(dest))
+                File.Delete(dest);
+
+            using (var webClient = new WebClient())
+            {
+                await webClient.DownloadFileTaskAsync(attachment.Url, dest);
+            }
+        }
+
+        public async Task UploadMethodAsync(Attachment attachment, string type, Func<string, bool> pluginIsAllowed)
+        {
+            if (type is "schematic")
+            {
+                await UploadSchematicAsync(attachment);
+                return;
+            }
+
+            await UploadPluginAsync(attachment, pluginIsAllowed);
+        }
+
+        public async Task UploadPluginAsync(Attachment attachment, Func<string, bool> isAllowed)
+        {
+            var tempPath = Path.GetTempPath();
+            var tempFilePath = $"{tempPath}/{attachment.Filename}";
+
+            using (var webClient = new WebClient())
+            {
+                await webClient.DownloadFileTaskAsync(attachment.Url, tempFilePath);
+            }
+
+            var assembly = Assembly.Load(await File.ReadAllBytesAsync(tempFilePath));
+            string pluginType = null;
+
+            foreach (var type in assembly.GetTypes())
+            {
+                if (type.GetMethods().Any(x => x.CustomAttributes.Any(x => x.AttributeType.Name == "PluginAPI.Core.Attributes.PluginEntryPoint")))
+                {
+                    pluginType = "nwapi";
+                    break;
+                }
+
+                if (type.GetMethods().Any(x => x.Name == "OnEnabled"))
+                {
+                    pluginType = "exiled";
+                    break;
+                }
+            }
+
+            if (pluginType is null)
+                throw new InvalidOperationException();
+
+            if (!isAllowed(pluginType))
                 return;
 
-            if (!Discord.HasPermission(member, DiscordPermission.SshExecute))
+            var dest = pluginType is "nwapi" ?
+                $"{Discord.UploadNwApiPath}/{attachment.Filename}" :
+                $"{Discord.UploadExiledPluginPath}/{attachment.Filename}";
+
+            if (File.Exists(dest))
+                File.Delete(dest);
+
+            if (pluginType is "nwapi")
+                File.Move(tempFilePath, dest);
+            else
+                File.Move(tempFilePath, dest);
+        }
+
+        [Command("upload")]
+        public async Task UploadAsync()
+        {
+            string GetUploadType(Attachment attachment)
+            {
+                if (attachment.Filename.EndsWith("json"))
+                    return "schematic";
+
+                if (attachment.Filename.EndsWith("dll"))
+                    return "plugin";
+
+                return null;
+            }
+
+            Discord.TryGetMember(Context.User, out var member);
+
+            bool IsAllowed(string pluginType)
+            {
+                if (pluginType is "nwapi" && !Discord.HasPermission(member, DiscordPermission.UploadNwApiPlugins))
+                {
+                    Task.Run(async () =>
+                    {
+                        await ReplyAsync(null, false, new EmbedBuilder()
+                        .WithAuthor(new EmbedAuthorBuilder()
+                            .WithName(Server.ServerName)
+                            .WithIconUrl(Discord.User.GetIconUrl()))
+                        .WithColor(Color.Red)
+                        .WithDescription($"❌ **Nemáš práva na nahrávání NW API pluginů.**")
+                        .Build());
+                    });
+
+                    return false;
+                }
+
+                if (pluginType is "exiled" && !Discord.HasPermission(member, DiscordPermission.UploadExiledPlugins))
+                {
+                    Task.Run(async () =>
+                    {
+                        await ReplyAsync(null, false, new EmbedBuilder()
+                        .WithAuthor(new EmbedAuthorBuilder()
+                            .WithName(Server.ServerName)
+                            .WithIconUrl(Discord.User.GetIconUrl()))
+                        .WithColor(Color.Red)
+                        .WithDescription($"❌ **Nemáš práva na nahrávání EXILED pluginů.**")
+                        .Build());
+                    });
+
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (!Context.Message.Attachments.Any())
             {
                 await ReplyAsync(null, false, new EmbedBuilder()
                     .WithAuthor(new EmbedAuthorBuilder()
                         .WithName(Server.ServerName)
                         .WithIconUrl(Discord.User.GetIconUrl()))
-                    .WithColor(Color.Blue)
-                    .WithDescription(@"❌ **Chybí ti permise!**")
+                    .WithColor(Color.Red)
+                    .WithDescription($"❌ **Zpráva neobsahuje žádné attachmenty.**")
                     .Build());
 
                 return;
             }
 
-            var linuxCommand = new LinuxCommand()
-                .WithArg(command);
+            if (Context.Message.Attachments.Count is 1)
+            {
+                var type = GetUploadType(Context.Message.Attachments.ElementAt(0));
+                if (type is null)
+                {
+                    await ReplyAsync(null, false, new EmbedBuilder()
+                        .WithAuthor(new EmbedAuthorBuilder()
+                            .WithName(Server.ServerName)
+                            .WithIconUrl(Discord.User.GetIconUrl()))
+                        .WithColor(Color.Red)
+                        .WithDescription($"❌ **Neplatný attachment. Povolené jsou pouze soubory s příponou dll nebo json.**")
+                        .Build());
 
-            var output = linuxCommand.Execute();
+                    return;
+                }
 
-            await ReplyAsync(null, false, new EmbedBuilder()
-                .WithAuthor(new EmbedAuthorBuilder()
-                    .WithName(Server.ServerName)
-                    .WithIconUrl(Discord.User.GetIconUrl()))
-                .WithColor(Color.Red)
-                .WithDescription($"`{(string.IsNullOrWhiteSpace(output) ? "No output." : output)}`")
-                .Build());
+                if (type is "schematic" && !Discord.HasPermission(member, DiscordPermission.UploadSchematics))
+                {
+                    await ReplyAsync(null, false, new EmbedBuilder()
+                        .WithAuthor(new EmbedAuthorBuilder()
+                            .WithName(Server.ServerName)
+                            .WithIconUrl(Discord.User.GetIconUrl()))
+                        .WithColor(Color.Red)
+                        .WithDescription($"❌ **Nemáš práva na nahrávání schematik.**")
+                        .Build());
 
-            linuxCommand = null;
+                    return;
+                }
+
+                await UploadMethodAsync(Context.Message.Attachments.First(), type, IsAllowed);
+                await ReplyAsync(null, false, new EmbedBuilder()
+                    .WithAuthor(new EmbedAuthorBuilder()
+                        .WithName(Server.ServerName)
+                        .WithIconUrl(Discord.User.GetIconUrl()))
+                    .WithColor(Color.Green)
+                    .WithDescription($"✅ **Attachment `{Context.Message.Attachments.First().Filename}` nahrán na server.**")
+                    .Build());
+            }
+            else
+            {
+                foreach (var attachment in Context.Message.Attachments)
+                {
+                    var type = GetUploadType(attachment);
+                    if (type is null)
+                    {
+                        await ReplyAsync(null, false, new EmbedBuilder()
+                            .WithAuthor(new EmbedAuthorBuilder()
+                                .WithName(Server.ServerName)
+                                .WithIconUrl(Discord.User.GetIconUrl()))
+                            .WithColor(Color.Red)
+                            .WithDescription($"❌ **Neplatný attachment (`{attachment.Filename}`). Povolené jsou pouze soubory s příponou dll nebo json.**")
+                            .Build());
+
+                        continue;
+                    }
+
+                    if (type is "schematic" && !Discord.HasPermission(member, DiscordPermission.UploadSchematics))
+                    {
+                        await ReplyAsync(null, false, new EmbedBuilder()
+                            .WithAuthor(new EmbedAuthorBuilder()
+                                .WithName(Server.ServerName)
+                                .WithIconUrl(Discord.User.GetIconUrl()))
+                            .WithColor(Color.Red)
+                            .WithDescription($"❌ **Nemáš práva na nahrávání schematik. Přeskočeno `{attachment.Filename}`**")
+                            .Build());
+
+                        continue;
+                    }
+
+                    await UploadMethodAsync(attachment, type, IsAllowed);
+                    await ReplyAsync(null, false, new EmbedBuilder()
+                        .WithAuthor(new EmbedAuthorBuilder()
+                            .WithName(Server.ServerName)
+                            .WithIconUrl(Discord.User.GetIconUrl()))
+                        .WithColor(Color.Green)
+                        .WithDescription($"✅ **Attachment `{attachment.Filename}` nahrán na server.**")
+                        .Build());
+                }
+            }
         }
 
         [Command("ra")]
@@ -754,182 +969,6 @@ namespace DiscordBridgeBot.Core.DiscordBot
                 .WithMessage(new RemoteAdminExecuteMessage(command, 
                         $"{Context.User.Username}#{Context.User.Discriminator}", 
                            Context.User.Id.ToString())));
-        }
-
-        [Command("ip")]
-        public async Task IpAsync([Remainder] string ip)
-        {
-            var response = await IpApiService.GetAsync(ip);
-            if (response.Status != "success")
-            {
-                await ReplyAsync(null, false, new EmbedBuilder()
-                    .WithAuthor(new EmbedAuthorBuilder()
-                        .WithName(Server.ServerName)
-                        .WithIconUrl(Discord.User.GetIconUrl()))
-                    .WithColor(Color.Red)
-                    .WithDescription($"❌ `{response.Message}`")
-                    .Build());
-
-                return;
-            }
-
-            await ReplyAsync(null, false, new EmbedBuilder()
-                .WithAuthor(new EmbedAuthorBuilder()
-                    .WithName(Server.ServerName)
-                    .WithIconUrl(Discord.User.GetIconUrl()))
-                .WithColor(Color.Red)
-                .WithFields(new EmbedFieldBuilder[]
-                {
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("IP")
-                        .WithValue(string.IsNullOrWhiteSpace(response.Query) ? "Unknown" : response.Query),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("ASN ID")
-                        .WithValue(string.IsNullOrWhiteSpace(response.AsId) ? "Unknown" : response.AsId),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("ASN Name")
-                        .WithValue(string.IsNullOrWhiteSpace(response.AsName) ? "Unknown" : response.AsName),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Internet Service Provider")
-                        .WithValue(string.IsNullOrWhiteSpace(response.InternetServiceProviderName) ? "Unknown" : response.InternetServiceProviderName),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Organization")
-                        .WithValue(string.IsNullOrWhiteSpace(response.OrganizationName) ? "Unknown" : response.OrganizationName),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Reverse DNS")
-                        .WithValue(string.IsNullOrWhiteSpace(response.ReverseDns) ? "Unknown" : response.ReverseDns),
-                        
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Continent")
-                        .WithValue($"{response.Continent ?? "Unknown"} ({response.ContinentCode ?? "Unknown"}) [Currency: **{response.Currency ?? "Unknown"}**]"),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Country")
-                        .WithValue($"{response.Country ?? "Unknown"} ({response.CountryIso ?? "Unknown"})"),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Region")
-                        .WithValue($"{response.RegionName ?? "Unknown"} ({response.Region ?? "Unknown"})"),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("City")
-                        .WithValue($"{response.City ?? "Unknown"} ({response.ZipCode ?? "Unknown"})"),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("District")
-                        .WithValue(string.IsNullOrWhiteSpace(response.District) ? "Unknown" : response.District),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName($"Coordinates")
-                        .WithValue($"Latitude: {response.Latitude}; Longitude: {response.Longitude}"),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Time Zone")
-                        .WithValue($"{response.TimeZone ?? "Unknown"} ({response.TimeZoneOffset})"),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Flags")
-                        .WithValue(string.IsNullOrWhiteSpace(
-                            $"{(response.IsMobile ? "Mobile, " : "")}" +
-                            $"{(response.IsProxy ? "Proxy, " : "")}" +
-                            $"{(response.IsHosting ? "Hosting" : "")}")
-                        
-                        ? "None" :
-
-                            $"{(response.IsMobile ? "Mobile, " : "")}" +
-                            $"{(response.IsProxy ? "Proxy, " : "")}" +
-                            $"{(response.IsHosting ? "Hosting" : "")}")
-                })
-                .Build());
-        }
-
-        [Command("steamid")]
-        public async Task SteamIdAsync([Remainder] string steamId)
-        {
-            var response = await SteamIdApiService.GetAsync(steamId);
-            if (response is null)
-            {
-                await ReplyAsync(null, false, new EmbedBuilder()
-                    .WithAuthor(new EmbedAuthorBuilder()
-                        .WithName(Server.ServerName)
-                        .WithIconUrl(Discord.User.GetIconUrl()))
-                    .WithColor(Color.Red)
-                    .WithDescription($"❌ Vrácená odpověď je chybová.")
-                    .Build());
-
-                return;
-            }
-
-            await ReplyAsync(null, false, new EmbedBuilder()
-                .WithAuthor(new EmbedAuthorBuilder()
-                    .WithName(Server.ServerName)
-                    .WithIconUrl(Discord.User.GetIconUrl()))
-                .WithColor(Color.Red)
-                .WithFields(new EmbedFieldBuilder[]
-                {
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("ID")
-                        .WithValue(steamId),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Real Name")
-                        .WithValue(string.IsNullOrWhiteSpace(response.RealName) ? "Private" : response.RealName),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Country")
-                        .WithValue(string.IsNullOrWhiteSpace(response.Country) ? "Private" : response.Country),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Status")
-                        .WithValue(response.Status),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Visibility")
-                        .WithValue(response.Visibility),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Created At")
-                        .WithValue(response.CreatedAt),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Last LogOff At")
-                        .WithValue(response.LastLogOffAt),
-
-                    new EmbedFieldBuilder()
-                        .WithIsInline(true)
-                        .WithName("Flags")
-                        .WithValue($"" +
-                            $"{(response.IsVacBanned ? "VAC Banned, " : "")}" +
-                            $"{(!response.IsTradeClean ? "Not Trade Clean, " : "")}" +
-                            $"{(!response.IsCommunityClean ? "Not Community Clean" : "")}")
-                })
-                .Build());
         }
     }
 }

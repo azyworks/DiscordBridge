@@ -602,7 +602,7 @@ namespace DiscordBridgeBot.Core.ScpSlLogs
                         punishmentIssuedMessage.Name = playerCache.LastUserName;
                     }
 
-                    if (string.IsNullOrWhiteSpace(punishmentIssuedMessage.Ip))
+                    if (string.IsNullOrWhiteSpace(punishmentIssuedMessage.Ip) || punishmentIssuedMessage.Ip == "UNKNOWN")
                     {
                         punishmentIssuedMessage.Ip = playerCache.UserIp;
                     }

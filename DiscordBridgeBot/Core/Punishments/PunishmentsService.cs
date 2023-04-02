@@ -121,7 +121,6 @@ namespace DiscordBridgeBot.Core.Punishments
                             .WithFields(new EmbedFieldBuilder[]
                             {
                             new EmbedFieldBuilder()
-                                .WithIsInline(true)
                                 .WithName("🔗 Reporter")
                                 .WithValue(
                                 $"**Player ID**: {reportMessage.ReporterPlayerId}\n" +
@@ -132,7 +131,6 @@ namespace DiscordBridgeBot.Core.Punishments
                                 $"**Místnost**: {reportMessage.ReporterRoom}"),
 
                             new EmbedFieldBuilder()
-                                .WithIsInline(true)
                                 .WithName("🔗 Reported")
                                 .WithValue(
                                 $"**Player ID**: {reportMessage.ReportedPlayerId}\n" +
@@ -143,7 +141,6 @@ namespace DiscordBridgeBot.Core.Punishments
                                 $"**Místnost**: {reportMessage.ReportedRoom}"),
 
                             new EmbedFieldBuilder()
-                                .WithIsInline(true)
                                 .WithName("❔ Důvod")
                                 .WithValue($"```{reportMessage.Reason}```")
                             })
@@ -161,7 +158,7 @@ namespace DiscordBridgeBot.Core.Punishments
             {
                 history = new PunishmentHistory
                 {
-                    HistoryId = RandomGenerator.Ticket(15),
+                    HistoryId = AzyWorks.System.RandomGenerator.Ticket(15),
 
                     HistoryOwnerId = userId,
                     HistoryOwnerName = userName,
@@ -186,7 +183,7 @@ namespace DiscordBridgeBot.Core.Punishments
             var history = GetOrCreateHistory(punishmentIssuedMessage.Id, punishmentIssuedMessage.Name);
 
             history.Issue(
-                RandomGenerator.Ticket(4),
+                AzyWorks.System.RandomGenerator.Ticket(4),
 
                 punishmentIssuedMessage.IssuerId,
                 punishmentIssuedMessage.IssuerName,

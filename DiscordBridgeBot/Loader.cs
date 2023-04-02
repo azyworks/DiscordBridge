@@ -3,6 +3,7 @@ using AzyWorks.Logging;
 using AzyWorks.System.Services;
 
 using DiscordBridgeBot.Core.Configuration;
+using DiscordBridgeBot.Core.DiscordBot;
 using DiscordBridgeBot.Core.Logging;
 using DiscordBridgeBot.Core.Network;
 using System.Net.Sockets;
@@ -40,14 +41,16 @@ namespace DiscordBridgeBot.Core
             Log.BlacklistedSources.Clear();
 
             Services = new ServiceCollection();
-            Services.AddService<LogService>("Core :: Loader");
+            Services.AddService<LogService>("Core");
 
             LoaderLog = Services.GetService<LogService>();
+
+            MainDiscordInstance.Log = LoaderLog;
 
             LoaderLog.Info("Welcome!");
             LoaderLog.Info("Registering default services ..");
 
-            Services.AddService<ConfigManagerService>(ConfigMainPath, new Type[] { typeof(LogService), typeof(Program), typeof(NetworkManagerService) });
+            Services.AddService<ConfigManagerService>(ConfigMainPath, new Type[] { typeof(LogService), typeof(Program), typeof(NetworkManagerService), typeof(MainDiscordInstance) });
             Services.AddService<NetworkManagerService>();
 
             LoaderLog.Info("Services registered, starting the network!");
@@ -59,6 +62,8 @@ namespace DiscordBridgeBot.Core
                 AppDomain.CurrentDomain.FirstChanceException += OnExceptionCaptured;
                 AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
             }
+
+            MainDiscordInstance.Connect();
 
             await Task.Delay(-1);
         }

@@ -1,130 +1,62 @@
-﻿using AzyWorks.System.Services;
-
-using Discord;
+﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using DiscordBridgeBot.Core.Configuration;
 using DiscordBridgeBot.Core.Logging;
-using DiscordBridgeBot.Core.Punishments;
-using DiscordBridgeBot.Core.ScpSlLogs;
+using DiscordBridgeBot.Core.Main;
 
 namespace DiscordBridgeBot.Core.DiscordBot
 {
-    public class DiscordService : IService
+    public static class MainDiscordInstance 
     {
-        private LogService _log;
+        public static DiscordSocketClient Client { get; private set; }
+        public static CommandService Commands { get; private set; }
 
-        public DiscordComponents Components { get; } = new DiscordComponents();
-        public DiscordSocketClient Client { get; private set; }
-        public CommandService Commands { get; private set; }
-        public IServiceProvider CommandsServices { get; private set; }
+        public static SocketGuildUser User { get; private set; }
+        public static SocketGuild Guild { get; private set; }
 
-        public SocketGuildUser User { get; private set; }
-        public SocketGuild Guild { get; private set; }
+        public static SocketTextChannel[] AdminChannels { get; private set; }
+        public static SocketTextChannel[] Channels { get; private set; }
 
-        public SocketTextChannel[] AdminChannels { get; private set; }
-        public SocketTextChannel[] Channels { get; private set; }
+        public static LogService Log { get; set; }
 
-        public IServiceCollection Collection { get; set; }
-
-        public bool IsReady { get; private set; }
+        public static bool IsReady { get; private set; }
 
         [Config("Discord.Token", "The token to use for your Discord bot.")]
-        public string Token = "none";
+        public static string Token = "none";
 
         [Config("Discord.Prefix", "The prefix to use for commands.")]
-        public string Prefix = "!";
+        public static string Prefix = "!";
 
         [Config("Discord.AdminOverride", "Whether or not to allow the Administrator permission to bypass all permission checks.")]
-        public bool AdminOverride = true;
+        public static bool AdminOverride = true;
 
         [Config("Discord.GuildId", "The ID of your Discord guild. Required if the bot is in more than one guild.")]
-        public ulong GuildId = 0;
+        public static ulong GuildId = 0;
 
         [Config("Discord.AdminChannelIds", "A list of admin-only text channel IDs.")]
-        public ulong[] AdminChannelIds = new ulong[]
+        public static ulong[] AdminChannelIds = new ulong[]
         {
             0
         };
 
         [Config("Discord.ChannelIds", "A list of channels where commands can be used.")]
-        public ulong[] ChannelIds = new ulong[]
+        public static ulong[] ChannelIds = new ulong[]
         {
             0
         };
 
-        [Config("BanLog.ShowIPs", "Whether or not to show IP addresses in admin-only channels.")]
-        public bool ShowIpAddressInAdminOnly { get; set; } = true;
-
         [Config("Discord.Permissions", "A list of all custom permissions.")]
-        public Dictionary<ulong, DiscordPermission[]> Permissions = new Dictionary<ulong, DiscordPermission[]>()
+        public static Dictionary<ulong, DiscordPermission[]> Permissions = new Dictionary<ulong, DiscordPermission[]>()
         {
             [0] = new DiscordPermission[] { DiscordPermission.Linking }
         };
 
-        [Config("BanLog.ChannelIds", "A list of channel IDs for the ban log.")]
-        public Dictionary<BanLogChannelType, List<ulong>> ConfigChannelIds { get; set; } = new Dictionary<BanLogChannelType, List<ulong>>()
+        public static event Action<SocketGuildUser, SocketGuild> OnReady;
+
+        public static void Connect()
         {
-            [BanLogChannelType.AdminOnly] = new List<ulong>() { 0, 1 },
-            [BanLogChannelType.Public] = new List<ulong>() { 2, 3 }
-        };
-
-        [Config("BanLog.RevokeChannelId", "The ID of the channel to send ban revoke requests to.")]
-        public ulong RevokeRequestsChannelId { get; set; } = 0;
-
-        [Config("RolePlay.RoleRequestsChannelId", "The channel to send role requests into.")]
-        public ulong RoleRequestsChannelId { get; set; } = 0;
-
-        [Config("RolePlay.RoleRequestsAllowedChannels", "The list of channels that can be used to submit role requests.")]
-        public ulong[] RoleRequestsAllowedChannelIds { get; set; } = new ulong[]
-        {
-            0, 
-            1
-        };
-
-        [Config("Reports.Channels", "A list of channels to send in-game reports to.")]
-        public Dictionary<ulong, ulong[]> ReportChannels { get; set; } = new Dictionary<ulong, ulong[]>()
-        {
-            [0] = new ulong[] { 0, 1 },
-            [1] = new ulong[] { 2, 3 }
-        };
-
-        [Config("Upload.Allowed", "Which files are allowed to be uploaded.")]
-        public string[] UploadAllowed { get; set; } = new string[]
-        {
-            "schematic",
-            "nwapi_plugin",
-            "exiled_plugin"
-        };
-
-        [Config("Upload.Exiled", "Where to upload EXILED plugins.")]
-        public string UploadExiledPluginPath = "";
-
-        [Config("Upload.NwApi", "Where to upload Northwood API plugins.")]
-        public string UploadNwApiPath = "";
-
-        [Config("Upload.Schematics", "Where to upload schematics.")]
-        public string UploadSchematicsPath = "";
-
-        public event Action<SocketGuildUser, SocketGuild> OnReady;
-
-        public void Start(IServiceCollection collection, object[] initArgs)
-        {
-            _log = Collection.GetService<LogService>();
-
-            Collection.GetService<ConfigManagerService>()?.ConfigHandler.RegisterConfigs(this);
-        }
-
-        public void Stop()
-        {
-            Collection.RemoveService<PunishmentsService>();
-
-            Disconnect();
-        }
-
-        public void Connect()
-        {
-            _log.Info("Connecting to Discord ..");
+            Log.Info("Connecting to Discord ..");
 
             Client = new DiscordSocketClient(new DiscordSocketConfig()
             {
@@ -153,38 +85,23 @@ namespace DiscordBridgeBot.Core.DiscordBot
                 LogLevel = LogSeverity.Warning
             });
 
-            CommandsServices = Collection.ToProvider();
             Commands.CommandExecuted += OnCommandExecuted;
 
             Client.GuildAvailable += OnGuildAvailable;
-            Client.SelectMenuExecuted += OnSelectMenuExecuted;
-            Client.ButtonExecuted += OnButtonExecuted;
-
-            Components.AddHandlers(this);
 
             Task.Run(async () => await ConnectAsync());
         }
 
-        private async Task OnSelectMenuExecuted(SocketMessageComponent component)
+        public static void Disconnect()
         {
-
-        }
-        
-        private async Task OnButtonExecuted(SocketMessageComponent component)
-        {
-
-        }
-
-        public void Disconnect()
-        {
-            _log.Info("Disconnecting from Discord ..");
+            Log.Info("Disconnecting from Discord ..");
 
             Task.Run(async () => await DisconnectAsync());
         }
 
-        public bool IsConsideredAdmin(SocketGuildUser user) => HasPermission(user, DiscordPermission.Administrator);
+        public static bool IsConsideredAdmin(SocketGuildUser user) => HasPermission(user, DiscordPermission.Administrator);
 
-        public bool HasPermission(SocketGuildUser user, DiscordPermission permission)
+        public static bool HasPermission(SocketGuildUser user, DiscordPermission permission)
         {
             if (permission is DiscordPermission.None)
                 return true;
@@ -224,19 +141,19 @@ namespace DiscordBridgeBot.Core.DiscordBot
             return false;
         }
 
-        public bool TryGetMember(SocketUser user, out SocketGuildUser member)
+        public static bool TryGetMember(SocketUser user, out SocketGuildUser member)
         {
             member = Guild.GetUser(user.Id);
             return member != null;
         }
 
-        public bool TryGetMember(ulong memberId, out SocketGuildUser member)
+        public static bool TryGetMember(ulong memberId, out SocketGuildUser member)
         {
             member = Guild.GetUser(memberId);
             return member != null;
         }
 
-        public string GetMention(ulong id)
+        public static string GetMention(ulong id)
         {
             var role = Guild.GetRole(id);
             if (role != null)
@@ -253,30 +170,28 @@ namespace DiscordBridgeBot.Core.DiscordBot
             return "Unknown ID";
         }
 
-        internal async Task ConnectAsync()
+        internal static async Task ConnectAsync()
         {
             await Client.LoginAsync(TokenType.Bot, Token);
             await Client.StartAsync();
 
-            await Commands.AddModuleAsync<DiscordCommandService>(CommandsServices);
+            await Commands.AddModuleAsync<MainDiscordInstanceCommands>(null);
 
-            _log.Info("Connected to Discord!");
+            Log.Info("Connected to Discord!");
         }
-        
-        internal async Task DisconnectAsync()
+
+        internal static async Task DisconnectAsync()
         {
             await Client.LogoutAsync();
             await Client.StopAsync();
             await Client.DisposeAsync();
 
-            Components.RemoveHandlers();
-
             Client = null;
 
-            _log.Info("Disconnected!");
+            Log.Info("Disconnected!");
         }
 
-        private Task OnCommandExecuted(Optional<CommandInfo> command, ICommandContext ctx, IResult result)
+        private static Task OnCommandExecuted(Optional<CommandInfo> command, ICommandContext ctx, IResult result)
         {
             if (!command.IsSpecified)
                 return Task.CompletedTask;
@@ -286,31 +201,26 @@ namespace DiscordBridgeBot.Core.DiscordBot
                 if (!executeResult.IsSuccess)
                 {
                     if (executeResult.Error.HasValue)
-                        _log.Error($"Command execution failed: {executeResult.Error.Value}");
+                        Log.Error($"Command execution failed: {executeResult.Error.Value}");
                     else
-                        _log.Error($"Command execution failed: unknown");
+                        Log.Error($"Command execution failed: unknown");
 
                     if (!string.IsNullOrWhiteSpace(executeResult.ErrorReason))
-                        _log.Error(executeResult.ErrorReason);
+                        Log.Error(executeResult.ErrorReason);
 
                     if (executeResult.Exception != null)
-                        _log.Error(executeResult.Exception);
+                        Log.Error(executeResult.Exception);
                 }
                 else
                 {
-                    _log.Debug($"Command executed: {command.Value.Name}");
+                    Log.Debug($"Command executed: {command.Value.Name}");
                 }
             }
 
             return Task.CompletedTask;
         }
 
-        private async Task OnInteraction()
-        {
-
-        }
-
-        private async Task OnMessageReceived(SocketMessage message)
+        private static async Task OnMessageReceived(SocketMessage message)
         {
             if (message is not SocketUserMessage userMessage)
                 return;
@@ -341,10 +251,10 @@ namespace DiscordBridgeBot.Core.DiscordBot
             }
 
             var context = new SocketCommandContext(Client, userMessage);
-            await Commands.ExecuteAsync(context, argPos, CommandsServices, MultiMatchHandling.Best);
+            await Commands.ExecuteAsync(context, argPos, null, MultiMatchHandling.Best);
         }
 
-        private Task OnGuildAvailable(SocketGuild guild)
+        private static Task OnGuildAvailable(SocketGuild guild)
         {
             if (GuildId != 0 && GuildId != guild.Id)
                 return Task.CompletedTask;
@@ -355,7 +265,7 @@ namespace DiscordBridgeBot.Core.DiscordBot
             Guild = guild;
             User = guild.CurrentUser;
 
-            _log.Info($"Found Discord guild: {Guild.Name} ({Guild.Id}), searching for channels ..");
+            Log.Info($"Found Discord guild: {Guild.Name} ({Guild.Id}), searching for channels ..");
 
             AdminChannels = new SocketTextChannel[AdminChannelIds.Length];
             Channels = new SocketTextChannel[ChannelIds.Length];
@@ -365,9 +275,9 @@ namespace DiscordBridgeBot.Core.DiscordBot
                 Channels[i] = Guild.GetTextChannel(ChannelIds[i]);
 
                 if (Channels[i] is null)
-                    _log.Warn($"Failed to find public channel: {ChannelIds[i]}");
+                    Log.Warn($"Failed to find public channel: {ChannelIds[i]}");
                 else
-                    _log.Info($"Found public channel: #{Channels[i].Name}");
+                    Log.Info($"Found public channel: #{Channels[i].Name}");
             }
 
             for (int i = 0; i < AdminChannelIds.Length; i++)
@@ -375,25 +285,20 @@ namespace DiscordBridgeBot.Core.DiscordBot
                 AdminChannels[i] = Guild.GetTextChannel(AdminChannelIds[i]);
 
                 if (AdminChannels[i] is null)
-                    _log.Warn($"Failed to find admin-only channel: {AdminChannelIds[i]}");
+                    Log.Warn($"Failed to find admin-only channel: {AdminChannelIds[i]}");
                 else
-                    _log.Info($"Found admin-only channel: #{AdminChannels[i].Name}");
+                    Log.Info($"Found admin-only channel: #{AdminChannels[i].Name}");
             }
 
             Client.MessageReceived += OnMessageReceived;
 
             OnReady?.Invoke(User, Guild);
 
-            _log.Info("Discord is ready!");
+            Log.Info("Discord is ready!");
 
             IsReady = true;
 
             return Task.CompletedTask;
-        }
-
-        public bool IsValid()
-        {
-            return true;
         }
     }
 }
